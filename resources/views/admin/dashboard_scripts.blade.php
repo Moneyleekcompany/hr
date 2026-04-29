@@ -144,6 +144,7 @@
     let currentLat = null;
     let currentLng = null;
     let videoStream = null;
+    let isMockLocationDetected = false;
 
         $("#startWorkingBtn").click(function(e) {
             e.preventDefault();
@@ -219,7 +220,8 @@
                 _token: $('meta[name="csrf-token"]').attr('content'),
                 lat: currentLat,
                 long: currentLng,
-                image: imageData
+                image: imageData,
+                is_mock: isMockLocationDetected
             },
             success: function(response){
                 let audio = new Audio(currentAudio);
@@ -263,6 +265,13 @@
                     navigator.geolocation.getCurrentPosition(function(position) {
                         let latitude = position.coords.latitude;
                         let longitude = position.coords.longitude;
+                        
+                        // التحقق مما إذا كان الموقع مزيفاً عبر اتصال جسر الموبايل (مثال: Android)
+                        if (window.Android && typeof window.Android.isMockLocation === 'function') {
+                            isMockLocationDetected = window.Android.isMockLocation();
+                        } else if (position.coords.accuracy > 500) {
+                            // دقة ضعيفة جداً قد تشير إلى تلاعب أو ضعف إشارة شديد
+                        }
 
                         resolve({ latitude: latitude, longitude: longitude });
                     }, function(error) {

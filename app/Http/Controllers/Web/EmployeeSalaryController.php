@@ -41,6 +41,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use MilanTarami\NumberToWordsConverter\Services\NumberToWords;
 //1e20
@@ -588,6 +589,21 @@ class EmployeeSalaryController extends Controller
             $this->payslipRepository->update($employeePaySlipDetail, $employeePayslipData);
 
             DB::commit();
+
+            // --- إرسال قسيمة الراتب عبر الإيميل تلقائياً ---
+            try {
+                $employee = $employeePaySlipDetail->employee;
+                if ($employee && $employee->email) {
+                    $payrollData = $this->generatePayrollService->getEmployeeAccountDetailToCreatePayslip($payslipId);
+                    $currency = AppHelper::getCompanyPaymentCurrencySymbol();
+                    $companyLogoPath = Company::UPLOAD_PATH;
+                    $numberToWords = new NumberToWords();
+                    
+                    Mail::to($employee->email)->send(new \App\Mail\PayslipMail($payrollData, $currency, $companyLogoPath, $numberToWords));
+                }
+            } catch (\Exception $mailException) {
+                \Illuminate\Support\Facades\Log::error('فشل إرسال إيميل قسيمة الراتب: ' . $mailException->getMessage());
+            }
             return response()->json(['success' => true]);
         }catch(Exception $exception){
             DB::rollBack();

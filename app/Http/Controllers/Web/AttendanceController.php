@@ -289,6 +289,18 @@ class AttendanceController extends Controller
     {
         try{
             $appTimeSetting = AppHelper::check24HoursTimeAppSetting();
+            
+            // التحقق من الموقع الوهمي
+            if ($request->get('is_mock') == 'true' || $request->get('is_mock') == 1) {
+                \App\Models\SecurityLog::create([
+                    'user_id' => getAuthUserCode(),
+                    'type' => 'تزييف الموقع (Fake GPS)',
+                    'message' => 'محاولة استخدام تطبيق لتزييف الموقع الجغرافي.',
+                    'ip_address' => $request->ip()
+                ]);
+                throw new Exception("تنبيه: تم اكتشاف استخدام تطبيق لتزييف الموقع الجغرافي (Fake GPS). يرجى إغلاقه لتسجيل الحضور.", 403);
+            }
+
             $locationDetail = [
                 'lat' => $request->get('lat'),
                     'long' => $request->get('long'),
@@ -364,6 +376,18 @@ class AttendanceController extends Controller
                     if (count($imageParts) == 2) {
                         file_put_contents($imagePath . '/' . $imageName, base64_decode($imageParts[1]));
                         $validatedData['check_in_image'] = $imageName;
+
+                        // === التحقق من الوجه بالذكاء الاصطناعي (AI Facial Recognition) ===
+                        if (!\App\Services\Attendance\FacialRecognitionService::verifyFace($userDetail, $imagePath . '/' . $imageName)) {
+                            unlink($imagePath . '/' . $imageName); // حذف الصورة المزيفة
+                            \App\Models\SecurityLog::create([
+                                'user_id' => $userId,
+                                'type' => 'تزييف الوجه (Fake Face)',
+                                'message' => 'فشل التحقق من الوجه بالذكاء الاصطناعي أثناء تسجيل الحضور.',
+                                'ip_address' => request()->ip()
+                            ]);
+                            throw new Exception("فشل التحقق من الوجه بالذكاء الاصطناعي. الصورة لا تتطابق مع صورتك الشخصية المسجلة.", 403);
+                        }
                     }
                 }
             }
@@ -417,6 +441,18 @@ class AttendanceController extends Controller
                     if (count($imageParts) == 2) {
                         file_put_contents($imagePath . '/' . $imageName, base64_decode($imageParts[1]));
                         $validatedData['check_out_image'] = $imageName;
+
+                        // === التحقق من الوجه بالذكاء الاصطناعي (AI Facial Recognition) ===
+                        if (!\App\Services\Attendance\FacialRecognitionService::verifyFace($userDetail, $imagePath . '/' . $imageName)) {
+                            unlink($imagePath . '/' . $imageName);
+                            \App\Models\SecurityLog::create([
+                                'user_id' => $userId,
+                                'type' => 'تزييف الوجه (Fake Face)',
+                                'message' => 'فشل التحقق من الوجه بالذكاء الاصطناعي أثناء تسجيل الانصراف.',
+                                'ip_address' => request()->ip()
+                            ]);
+                            throw new Exception("فشل التحقق من الوجه بالذكاء الاصطناعي. الصورة لا تتطابق مع صورتك الشخصية المسجلة.", 403);
+                        }
                     }
                 }
             }
