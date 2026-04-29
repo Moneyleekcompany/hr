@@ -144,7 +144,7 @@
     let currentLat = null;
     let currentLng = null;
     let videoStream = null;
-    let isMockLocationDetected = false;
+    let isMockLocationDetected = true;
 
         $("#startWorkingBtn").click(function(e) {
             e.preventDefault();

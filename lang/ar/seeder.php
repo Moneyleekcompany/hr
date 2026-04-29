@@ -11,6 +11,7 @@ return [
     '24-hour-format' => 'تنسيق 24 ساعة',
     'bs' => 'التاريخ بالتقويم النيبالي (B.S)',
     'attendance-note' => 'ملاحظة الحضور',
+    'facial-recognition' => 'التعرف على الوجه بالذكاء الاصطناعي (AI Facial)',
 
     /** General Setting */
 

@@ -41,6 +41,7 @@ use App\Http\Controllers\Web\RoleController;
 use App\Http\Controllers\Web\RouterController;
 use App\Http\Controllers\Web\AdvanceSalaryController;
 use App\Http\Controllers\Web\SalaryComponentController;
+use App\Http\Controllers\Web\SecurityLogController;
 use App\Http\Controllers\Web\SalaryGroupController;
 use App\Http\Controllers\Web\SalaryHistoryController;
 use App\Http\Controllers\Web\SalaryTDSController;
@@ -183,6 +184,10 @@ Route::group([
         Route::get('employees/attendance/check-out/{companyId}/{userId}', [AttendanceController::class, 'checkOutEmployee'])->name('employees.check-out');
         Route::get('employees/attendance/delete/{id}', [AttendanceController::class, 'delete'])->name('attendance.delete');
         Route::get('employees/attendance/change-status/{id}', [AttendanceController::class, 'changeAttendanceStatus'])->name('attendances.change-status');
+        
+        /** Selfie Review Gallery */
+        Route::get('attendance/selfies', [AttendanceController::class, 'selfieGallery'])->name('attendance.selfies');
+        
         Route::post('employees/attendance/{type}', [AttendanceController::class, 'dashboardAttendance'])->name('dashboard.takeAttendance');
 
         /** ZKTeco Devices route */
@@ -454,6 +459,9 @@ Route::group([
         /** Attendance Logs */
         Route::get('attendance/logs', [AttendanceController::class, 'logs'])->name('attendance.log');
 
+        /** Security Logs */
+        Route::get('security-logs', [SecurityLogController::class, 'index'])->name('security_logs.index');
+
         /** calculate tax */
         Route::get('calculate_tax',[EmployeeSalaryController::class, 'calculateTax'])->name('get-tax');
 
@@ -545,4 +553,15 @@ Route::get('/fix-zk', function () {
     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
     return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم تحديث قاعدة البيانات بنجاح!</h1><h3 style='text-align:center;'>ارجع للوحة التحكم وأضف الجهاز الآن.</h3>";
+});
+
+Route::get('/fix-images', function () {
+    if (!\Illuminate\Support\Facades\Schema::hasColumn('attendances', 'check_in_image')) {
+        \Illuminate\Support\Facades\Schema::table('attendances', function (\Illuminate\Database\Schema\Blueprint $table) {
+            $table->string('check_in_image')->nullable();
+            $table->string('check_out_image')->nullable();
+        });
+        return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم حل المشكلة وإضافة أعمدة الصور بنجاح!</h1><h3 style='text-align:center;'>امسح /fix-images من الرابط وارجع جرب زر السيلفي الآن.</h3>";
+    }
+    return "<h1 style='color:blue; text-align:center; margin-top:50px;'>ℹ️ الأعمدة موجودة بالفعل!</h1>";
 });

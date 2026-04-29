@@ -3,6 +3,8 @@
 namespace App\Services\Attendance;
 
 use App\Models\User;
+use App\Models\AppSetting;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class FacialRecognitionService
@@ -16,6 +18,15 @@ class FacialRecognitionService
      */
     public static function verifyFace(User $user, string $uploadedImagePath): bool
     {
+        // التحقق مما إذا كانت الخاصية مفعلة مع حفظ النتيجة في الكاش لتخفيف الضغط على قاعدة البيانات
+        $isFacialRecognitionEnabled = Cache::rememberForever('facial_recognition_status', function () {
+            return AppSetting::where('slug', 'facial-recognition')->value('status');
+        });
+
+        if (!$isFacialRecognitionEnabled) {
+            return true; // تمرير العملية بنجاح وتجاهل مطابقة الوجه إذا كانت الخاصية معطلة
+        }
+
         // إذا لم يكن للموظف صورة شخصية مسجلة، نمرر العملية (أو يمكنك إجبارهم على رفع صورة أولاً)
         if (!$user->avatar) {
             return true; 

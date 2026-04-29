@@ -80,7 +80,8 @@
                    request()->routeIs('admin.notifications.*')||
                    request()->routeIs('admin.general-settings.*')||
                    request()->routeIs('admin.fiscal_year.*')||
-                    request()->routeIs('admin.payment-currency.*')
+                    request()->routeIs('admin.payment-currency.*')||
+                    request()->routeIs('admin.security_logs.*')
                 ? 'active' : ''
             }}"
     >
@@ -98,7 +99,8 @@
                       request()->routeIs('admin.notifications.*')||
                       request()->routeIs('admin.payment-currency.*')||
                       request()->routeIs('admin.fiscal_year.*')||
-                      request()->routeIs('admin.feature.index')
+                      request()->routeIs('admin.feature.index')||
+                      request()->routeIs('admin.security_logs.*')
 
                        ? '' : 'collapse'  }} " id="setting">
 
@@ -163,6 +165,15 @@
                             class="nav-link {{request()->routeIs('admin.fiscal_year.*') ? 'active' : ''}}"> {{ __('index.fiscal_year') }}</a>
                     </li>
 {{--                @endcan--}}
+
+                @if(optional(auth()->user()->role)->slug === 'admin')
+                <li class="nav-item {{ request()->routeIs('admin.security_logs.*') ? 'active' : '' }}">
+                    <a
+                        href="{{route('admin.security_logs.index')}}"
+                        data-href="{{route('admin.security_logs.index')}}"
+                        class="nav-link {{request()->routeIs('admin.security_logs.*') ? 'active' : ''}}"> السجل الأمني (Security Logs)</a>
+                </li>
+                @endif
 
 
             </ul>

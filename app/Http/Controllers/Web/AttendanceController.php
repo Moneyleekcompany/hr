@@ -634,5 +634,29 @@ class AttendanceController extends Controller
         }
     }
 
+    public function selfieGallery(Request $request)
+    {
+        $this->authorize('list_attendance');
+        try {
+            $date = $request->attendance_date ?? AppHelper::getCurrentDateInYmdFormat();
+            $companyId = AppHelper::getAuthUserCompanyId();
+
+            // جلب سجلات الحضور التي تحتوي على صورة سيلفي في هذا التاريخ
+            $attendances = \App\Models\Attendance::with('employee:id,name')
+                ->where('company_id', $companyId)
+                ->where('attendance_date', $date)
+                ->where(function($q) {
+                    $q->whereNotNull('check_in_image')
+                      ->where('check_in_image', '!=', '')
+                      ->orWhereNotNull('check_out_image')
+                      ->where('check_out_image', '!=', '');
+                })
+                ->get();
+
+            return view($this->view . 'selfies', compact('attendances', 'date'));
+        } catch (Exception $exception) {
+            return redirect()->back()->with('danger', $exception->getMessage());
+        }
+    }
 
 }

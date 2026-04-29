@@ -57,7 +57,7 @@
                         </select>
                     </div>
 
-                    <div class="col-lg-4 col-md-6 d-md-flex">
+                    <div class="col-lg-6 col-md-12 d-md-flex">
                         <button type="submit" class="btn btn-block btn-success form-control me-md-2 me-0 mb-4">{{ __('index.filter') }}</button>
 
                         @can('attendance_csv_export')
@@ -68,6 +68,10 @@
                         @endcan
 
                         <a class="btn btn-block btn-primary form-control me-md-2 me-0 mb-4" href="{{ route('admin.attendances.index') }}">{{ __('index.reset') }}</a>
+                        
+                        @can('list_attendance')
+                        <a class="btn btn-block btn-dark form-control me-md-2 me-0 mb-4 text-white" href="{{ route('admin.attendance.selfies') }}"><i class="link-icon" data-feather="camera" style="width: 16px; margin-left: 5px;"></i> صور السيلفي</a>
+                        @endcan
                     </div>
                 </div>
             </form>
@@ -542,4 +546,3 @@
         });
     </script>
 @endsection
-
