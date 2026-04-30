@@ -192,6 +192,15 @@
                 placeholder: "@lang('index.task_name_placeholder')"
             });
         });
+
+        $('#is_recurring').change(function() {
+            if(this.checked) {
+                $('.recurring_options').slideDown();
+            } else {
+                $('.recurring_options').slideUp();
+                $('select[name="recurring_frequency"]').val('');
+            }
+        });
     });
 
     $('.startNpDate').nepaliDatePicker({

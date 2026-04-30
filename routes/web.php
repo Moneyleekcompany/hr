@@ -922,3 +922,30 @@ Route::get('/translate-permissions', function () {
 
     return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم تعريب جميع الصلاحيات والوحدات في النظام بنجاح!</h1><h3 style='text-align:center;'>امسح /translate-permissions من الرابط وارجع لصفحة الصلاحيات.</h3>";
 });
+
+Route::get('/test-recurring-tasks', function () {
+    $tasks = \App\Models\Task::where('is_recurring', 1)->get();
+    if ($tasks->isEmpty()) {
+        return "<h2 style='text-align:center; margin-top:50px; color:red;'>لا توجد أي مهام متكررة محفوظة حالياً. قم بإنشاء مهمة متكررة أولاً!</h2>";
+    }
+    
+    $count = 0;
+    foreach ($tasks as $task) {
+        $newTask = $task->replicate();
+        $newTask->status = 'not_started'; // إعادة المهمة المنسوخة لحالة البداية
+        $newTask->start_date = now()->toDateString();
+        $newTask->end_date = now()->addDays(1)->toDateString();
+        $newTask->save();
+        
+        // نسخ الموظفين المعينين للمهمة الجديدة
+        $assignedIds = \Illuminate\Support\Facades\DB::table('task_assigned_members')->where('task_id', $task->id)->pluck('user_id')->toArray();
+        foreach ($assignedIds as $userId) {
+            \Illuminate\Support\Facades\DB::table('task_assigned_members')->insert([
+                'task_id' => $newTask->id,
+                'user_id' => $userId,
+            ]);
+        }
+        $count++;
+    }
+    return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم تشغيل سكريبت المهام المتكررة يدوياً بنجاح!</h1><h3 style='text-align:center;'>تم توليد وتكرار ($count) مهام جديدة للموظفين. ارجع للوحة الكانبان لتراها.</h3>";
+});

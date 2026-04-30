@@ -78,12 +78,12 @@
         <label for="status" class="form-label">@lang('index.task_status') </label>
         <select class="form-select" id="status" name="status">
             <option value="" disabled {{isset($taskDetail) ? '' : 'selected'}}>@lang('index.select_task_status')</option>
-            <option value="not_started" {{ (isset($taskDetail) && $taskDetail->status == 'not_started') ? 'selected' : '' }}>@lang('index.not_started')</option>
-            <option value="in_progress" {{ (isset($taskDetail) && $taskDetail->status == 'in_progress') ? 'selected' : '' }}>@lang('index.in_progress')</option>
-            <option value="in_review" {{ (isset($taskDetail) && $taskDetail->status == 'in_review') ? 'selected' : '' }}>@lang('index.in_review')</option>
-            <option value="completed" {{ (isset($taskDetail) && $taskDetail->status == 'completed') ? 'selected' : '' }}>@lang('index.completed')</option>
-            <option value="on_hold" {{ (isset($taskDetail) && $taskDetail->status == 'on_hold') ? 'selected' : '' }}>@lang('index.on_hold')</option>
-            <option value="cancelled" {{ (isset($taskDetail) && $taskDetail->status == 'cancelled') ? 'selected' : '' }}>@lang('index.cancelled')</option>
+            <option value="not_started" {{ (isset($taskDetail) && $taskDetail->status == 'not_started') || old('status') == 'not_started' ? 'selected' : '' }}>@lang('index.not_started')</option>
+            <option value="in_progress" {{ (isset($taskDetail) && $taskDetail->status == 'in_progress') || old('status') == 'in_progress' ? 'selected' : '' }}>@lang('index.in_progress')</option>
+            <option value="in_review" {{ (isset($taskDetail) && $taskDetail->status == 'in_review') || old('status') == 'in_review' ? 'selected' : '' }}>@lang('index.in_review')</option>
+            <option value="completed" {{ (isset($taskDetail) && $taskDetail->status == 'completed') || old('status') == 'completed' ? 'selected' : '' }}>@lang('index.completed')</option>
+            <option value="on_hold" {{ (isset($taskDetail) && $taskDetail->status == 'on_hold') || old('status') == 'on_hold' ? 'selected' : '' }}>@lang('index.on_hold')</option>
+            <option value="cancelled" {{ (isset($taskDetail) && $taskDetail->status == 'cancelled') || old('status') == 'cancelled' ? 'selected' : '' }}>@lang('index.cancelled')</option>
         </select>
     </div>
 
@@ -107,7 +107,7 @@
         <div class=" col-lg-12 mb-3">
             <label for="employee" class="form-label">@lang('index.assign_member') <span style="color: red">*</span></label>
             <br>
-            <select class="col-md-12 form-select" id="taskMember" name="assigned_member[]" multiple="multiple" required>
+            <select class="form-select" id="taskMember" name="assigned_member[]" multiple="multiple" required>
                 @if(isset($projectMember))
                     @foreach($projectMember as $key => $datum)
                         <option value="{{$datum->user->id}}"  >{{ucfirst($datum->user->name)}}</option>
@@ -119,7 +119,7 @@
         <div class=" col-lg-12 mb-3 taskMemberAssignDiv">
             <label for="employee" class="form-label">@lang('index.assign_member') <span style="color: red">*</span></label>
             <br>
-            <select class="col-md-12 form-select" id="taskMember" name="assigned_member[]" multiple="multiple" required>
+            <select class="form-select" id="taskMember" name="assigned_member[]" multiple="multiple" required>
                 @if(isset($taskDetail))
                     @foreach($taskDetail->project->assignedMembers as $key => $value)
                         <option value="{{$value->user->id}}" {{ isset($taskDetail) && in_array($value->user->id,$memberId)  ? 'selected' : '' }}  >{{ucfirst($value->user->name)}}</option>
@@ -129,13 +129,13 @@
         </div>
     @endif
 
-    <div class="col-lg-6 mb-4">
+    <div class="col-lg-12 mb-4">
         <label for="description" class="form-label">@lang('index.description')<span style="color: red">*</span></label>
         <textarea class="form-control" name="description" id="tinymceExample" rows="4">{{ ( isset($taskDetail) ? $taskDetail->description: old('description') )}}</textarea>
     </div>
 
     @if(isset($taskDetail))
-        <div class="col-lg-6 mb-4">
+        <div class="col-lg-12 mb-4">
             <div class="card mb-4">
                 <div class="card-header">
                     <h6 class="">@lang('index.uploaded_files_and_images')</h6>
@@ -195,7 +195,7 @@
         </div>
     @endif
 
-    <div class="col-lg-6 mb-4">
+    <div class="col-lg-12 mb-4">
         <h6 class="mb-2">@lang('index.task_attachments')</h6>
         <div>
             <input id="image-uploadify" type="file"  name="attachments[]"
@@ -205,7 +205,7 @@
     <input type="hidden" readonly id="taskNotification" name="notification" value="0">
 
     <div class="col-12">
-        <button type="submit" class="btn btn-primary"><i class="link-icon" data-feather="{{isset($taskDetail)? 'edit-2':'plus'}}"></i> {{isset($taskDetail)? __('index.update_task') : __('index.create_task')}}</button>
+        <button type="submit" class="btn btn-primary me-2"><i class="link-icon" data-feather="{{isset($taskDetail)? 'edit-2':'plus'}}"></i> {{isset($taskDetail)? __('index.update_task') : __('index.create_task')}}</button>
 
         <button type="submit" id="withTaskNotification" class="btn btn-primary">
             <i class="link-icon" data-feather="{{isset($taskDetail)? 'edit-2':'plus'}}"></i>
@@ -213,17 +213,3 @@
         </button>
     </div>
 </div>
-
-<script>
-    // يفضل نقل هذا الكود إلى ملف الواجهة الأب داخل قسم @section('scripts')
-    $(document).ready(function() {
-        $('#is_recurring').change(function() {
-            if(this.checked) {
-                $('.recurring_options').slideDown();
-            } else {
-                $('.recurring_options').slideUp();
-                $('select[name="recurring_frequency"]').val('');
-            }
-        });
-    });
-</script>
