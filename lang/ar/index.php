@@ -459,6 +459,7 @@ return [
     'search_by_task_name' => 'البحث بواسطة اسم المهمة',
     'not_started' => 'لم تبدأ بعد',
     'create_tasks' => 'إنشاء مهام',
+    'in_review' => 'قيد المراجعة (بانتظار الاعتماد)',
     'end_date' => 'تاريخ الانتهاء',
     'task_name' => 'اسم المهمة',
     'enter_task_name' => 'أدخل اسم المهمة',
@@ -521,6 +522,12 @@ return [
     'upload_task_attachments' => 'رفع مرفقات المهمة',
     'upload_task_attachments_text' => 'رفع مرفقات المهمة',
     'choose_file_text' => 'اختر ملف',
+    'kanban_board' => 'لوحة كانبان (Kanban)',
+    'media_gallery' => 'معرض أعمال المشروع',
+    'recurring_tasks' => 'مهام متكررة',
+    'is_recurring' => 'هل المهمة متكررة؟',
+    'recurring_frequency' => 'معدل التكرار (يومي/أسبوعي/شهري)',
+    'approve_task' => 'اعتماد المهمة',
 
     /** Holiday */
     'holiday_section' => 'قسم العطلة',

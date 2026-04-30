@@ -43,8 +43,8 @@ class AppServiceProvider extends ServiceProvider
 
         Task::observe(TaskObserver::class);
 
-        $locale = Cache::get('locale', 'en'); // Default to 'en' if no locale is set
-        App::setLocale($locale);
+        \Illuminate\Support\Facades\App::setLocale('ar');
+        \Carbon\Carbon::setLocale('ar');
 
     }
 }

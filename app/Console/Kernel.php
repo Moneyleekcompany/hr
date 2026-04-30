@@ -37,6 +37,9 @@ class Kernel extends ConsoleKernel
 
         // أتمتة الرواتب: إنشاء مسودة الرواتب شهرياً يوم 25 الساعة 8 صباحاً
         $schedule->command('payroll:generate-monthly')->monthlyOn(25, '08:00');
+
+        // توليد المهام الدورية (التي تتكرر يومياً، أسبوعياً، شهرياً) أوتوماتيكياً في منتصف الليل
+        $schedule->command('tasks:generate-recurring')->dailyAt('00:00');
     }
 
     /**

@@ -27,11 +27,17 @@
 
         @can('upload_project_attachment')
             <a href="{{ route('admin.project-attachment.create', $projectDetail->id) }}" >
-                <button class="btn btn-sm btn-primary d-md-flex align-items-center">
+                <button class="btn btn-sm btn-primary me-md-2 d-md-flex align-items-center">
                     <i class="link-icon me-2" data-feather="clipboard"></i> @lang('index.upload_attachments')
                 </button>
             </a>
         @endcan
+
+        <a href="{{ route('admin.projects.gallery', $projectDetail->id) }}" >
+            <button class="btn btn-sm btn-info text-white d-md-flex align-items-center">
+                <i class="link-icon me-2" data-feather="image"></i> {{ __('index.media_gallery') }}
+            </button>
+        </a>
     </div>
 @endsection
 

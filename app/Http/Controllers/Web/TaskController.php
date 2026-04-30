@@ -246,6 +246,52 @@ class  TaskController extends Controller
         }
     }
 
+    public function kanbanBoard(Request $request)
+    {
+        $this->authorize('view_task_list');
+        try {
+            $filterParameters = [
+                'project_id' => $request->project_id ?? null,
+            ];
+            $select = ['*'];
+            $with = ['assignedMembers.user:id,name', 'project:name,id'];
+            
+            $tasks = $this->taskService->getAllFilteredTasksPaginated($filterParameters, $select, $with);
+            $projects = $this->projectService->getAllActiveProjects(['id','name']);
+            
+            $kanbanTasks = [
+                'not_started' => [],
+                'in_progress' => [],
+                'in_review' => [],
+                'completed' => []
+            ];
+            
+            foreach ($tasks as $task) {
+                $kanbanTasks[$task->status][] = $task;
+            }
+
+            return view($this->view . 'kanban', compact('kanbanTasks', 'projects', 'filterParameters'));
+        } catch (Exception $exception) {
+            return redirect()->back()->with('danger', $exception->getMessage());
+        }
+    }
+
+    public function updateStatusKanban(Request $request)
+    {
+        try {
+            $task = \App\Models\Task::findOrFail($request->task_id);
+            // منع تحويل المهمة من قيد المراجعة لمكتملة إلا لو كان الشخص لديه صلاحية الاعتماد
+            if ($request->status == 'completed' && $task->status == 'in_review' && !auth()->user()->can('approve_task')) {
+                return response()->json(['success' => false, 'message' => 'ليس لديك صلاحية لاعتماد المهام وإنهاءها']);
+            }
+            $task->status = $request->status;
+            $task->save();
+            return response()->json(['success' => true, 'message' => 'تم التحديث بنجاح']);
+        } catch (Exception $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()]);
+        }
+    }
+
     public function toggleStatus($id)
     {
         $this->authorize('edit_task');

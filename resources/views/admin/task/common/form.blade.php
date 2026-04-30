@@ -76,12 +76,30 @@
 
     <div class="col-lg-4 col-md-6 mb-4">
         <label for="status" class="form-label">@lang('index.task_status') </label>
-        <select class="form-select" id="status" name="status"  >
-            <option value="" {{isset($taskDetail) ? '' : 'selected'}}  disabled>@lang('index.select_task_status')</option>
-            @foreach(\App\Models\Task::STATUS as $value)
-                <option value="{{$value}}" {{ (isset($taskDetail) && ($taskDetail->status ) == $value) || (old('status') == $value) ? 'selected': '' }}>
-                    {{\App\Helpers\PMHelper::STATUS[$value]}}</option>
-            @endforeach
+        <select class="form-select" id="status" name="status">
+            <option value="" disabled {{isset($taskDetail) ? '' : 'selected'}}>@lang('index.select_task_status')</option>
+            <option value="not_started" {{ (isset($taskDetail) && $taskDetail->status == 'not_started') ? 'selected' : '' }}>@lang('index.not_started')</option>
+            <option value="in_progress" {{ (isset($taskDetail) && $taskDetail->status == 'in_progress') ? 'selected' : '' }}>@lang('index.in_progress')</option>
+            <option value="in_review" {{ (isset($taskDetail) && $taskDetail->status == 'in_review') ? 'selected' : '' }}>@lang('index.in_review')</option>
+            <option value="completed" {{ (isset($taskDetail) && $taskDetail->status == 'completed') ? 'selected' : '' }}>@lang('index.completed')</option>
+            <option value="on_hold" {{ (isset($taskDetail) && $taskDetail->status == 'on_hold') ? 'selected' : '' }}>@lang('index.on_hold')</option>
+            <option value="cancelled" {{ (isset($taskDetail) && $taskDetail->status == 'cancelled') ? 'selected' : '' }}>@lang('index.cancelled')</option>
+        </select>
+    </div>
+
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="form-check form-switch mt-4 pt-2">
+            <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring" value="1" {{ (isset($taskDetail) && $taskDetail->is_recurring) ? 'checked' : '' }}>
+            <label class="form-check-label fw-bold" for="is_recurring">@lang('index.is_recurring')</label>
+        </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6 mb-4 recurring_options" style="display: {{ (isset($taskDetail) && $taskDetail->is_recurring) ? 'block' : 'none' }};">
+        <label class="form-label">@lang('index.recurring_frequency')</label>
+        <select class="form-select" name="recurring_frequency">
+            <option value="daily" {{ (isset($taskDetail) && $taskDetail->recurring_frequency == 'daily') ? 'selected' : '' }}>يومياً</option>
+            <option value="weekly" {{ (isset($taskDetail) && $taskDetail->recurring_frequency == 'weekly') ? 'selected' : '' }}>أسبوعياً</option>
+            <option value="monthly" {{ (isset($taskDetail) && $taskDetail->recurring_frequency == 'monthly') ? 'selected' : '' }}>شهرياً</option>
         </select>
     </div>
 
@@ -195,3 +213,17 @@
         </button>
     </div>
 </div>
+
+<script>
+    // يفضل نقل هذا الكود إلى ملف الواجهة الأب داخل قسم @section('scripts')
+    $(document).ready(function() {
+        $('#is_recurring').change(function() {
+            if(this.checked) {
+                $('.recurring_options').slideDown();
+            } else {
+                $('.recurring_options').slideUp();
+                $('select[name="recurring_frequency"]').val('');
+            }
+        });
+    });
+</script>
