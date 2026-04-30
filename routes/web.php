@@ -261,7 +261,7 @@ Route::group([
         Route::post('tasks/update-status-kanban', [TaskController::class, 'updateStatusKanban'])->name('tasks.update-status-kanban');
         Route::resource('tasks', TaskController::class);
         Route::get('projects/task/create/{projectId}', [TaskController::class, 'createTaskFromProjectPage'])->name('project-task.create');
-        Route::get('tasks/delete/{id}', [TaskController::class, 'delete'])->name('tasks.delete');
+        Route::delete('tasks/delete/{id}', [TaskController::class, 'delete'])->name('tasks.delete');
         Route::get('tasks/toggle-status/{id}', [TaskController::class, 'toggleStatus'])->name('tasks.toggle-status');
         Route::get('tasks/get-all-tasks/{projectId}', [TaskController::class, 'getAllTaskByProjectId'])->name('users.getAllTaskByProjectId');
 

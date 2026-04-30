@@ -1,7 +1,7 @@
 <div class="row">
     <div class="col-lg-4 col-md-6 mb-4">
         <label for="title" class="form-label">@lang('index.task_name') <span style="color: red">*</span></label>
-        <input type="text" class="form-control" id="name" name="name" required value="{{ ( isset($taskDetail) ?  $taskDetail->name: old('name') )}}"
+        <input type="text" class="form-control" id="name" name="name" required value="{{ old('name', $taskDetail->name ?? '') }}"
                autocomplete="off" placeholder="@lang('index.enter_task_name')">
     </div>
 
@@ -17,8 +17,8 @@
             <label for="project" class="form-label">@lang('index.project') <span style="color: red">*</span> </label>
             <select class="form-select form-select" id="project" name="project_id"  >
                 <option value="" {{isset($taskDetail) ? '' : 'selected'}}  disabled>@lang('index.select_project')</option>
-                @foreach($projectLists as $key => $value)
-                    <option value="{{$value->id}}" {{ (isset($taskDetail) && ($taskDetail->project_id) == $value->id) || ( old('project_id') == $value->id)? 'selected': '' }}>
+                @foreach($projectLists as $value)
+                    <option value="{{$value->id}}" {{ old('project_id', $taskDetail->project_id ?? '') == $value->id ? 'selected' : '' }}>
                         {{$value->name}}
                     </option>
                 @endforeach
@@ -29,10 +29,10 @@
     <div class="col-lg-4 col-md-6 mb-4">
         <label for="start_date" class="form-label">@lang('index.task_start_date') <span style="color: red">*</span> </label>
         @if($isBsEnabled)
-            <input type="text" class="form-control startNpDate" id="start_date" name="start_date" required value="{{ ( isset( $taskDetail) ?  \App\Helpers\AppHelper::taskDate($taskDetail->start_date): old('start_date') )}}"
+            <input type="text" class="form-control startNpDate" id="start_date" name="start_date" required value="{{ old('start_date', isset($taskDetail) ? \App\Helpers\AppHelper::taskDate($taskDetail->start_date) : '') }}"
                    autocomplete="off" >
         @else
-            <input type="datetime-local" class="form-control" id="start_date" name="start_date" required value="{{ ( isset( $taskDetail) ?  $taskDetail->start_date: old('start_date') )}}"
+            <input type="datetime-local" class="form-control" id="start_date" name="start_date" required value="{{ old('start_date', $taskDetail->start_date ?? '') }}"
                    autocomplete="off" >
         @endif
 
@@ -40,26 +40,24 @@
     @if($isBsEnabled)
         <div class="col-lg-4 col-md-6 mb-3">
             <label for="start_time" class="form-label">@lang('index.task_start_time') <span style="color: red">*</span> </label>
-            <input type="time" class="form-control" id="start_time" name="start_time" required value="{{ ( isset( $taskDetail) ? date('H:i:s', strtotime($taskDetail->start_date)) : '' )}}"
+            <input type="time" class="form-control" id="start_time" name="start_time" required value="{{ old('start_time', isset($taskDetail) ? date('H:i:s', strtotime($taskDetail->start_date)) : '') }}"
                    autocomplete="off" >
         </div>
     @endif
     <div class="col-lg-4 col-md-6 mb-4">
         <label for="end_date" class="form-label">@lang('index.task_end_date') <span style="color: red">*</span> </label>
         @if($isBsEnabled)
-            <input type="text" class="form-control npDeadline" id="end_date" name="end_date" required value="{{ ( isset( $taskDetail) ?  \App\Helpers\AppHelper::taskDate($taskDetail->end_date): old('end_date') )}}"
+            <input type="text" class="form-control npDeadline" id="end_date" name="end_date" required value="{{ old('end_date', isset($taskDetail) ? \App\Helpers\AppHelper::taskDate($taskDetail->end_date) : '') }}"
                    autocomplete="off" >
         @else
-            <input type="datetime-local" class="form-control" id="end_date" name="end_date" required value="{{ ( isset( $taskDetail) ?  $taskDetail->end_date: old('end_date') )}}"
+            <input type="datetime-local" class="form-control" id="end_date" name="end_date" required value="{{ old('end_date', $taskDetail->end_date ?? '') }}"
                    autocomplete="off" >
         @endif
-
-
     </div>
     @if($isBsEnabled)
         <div class="col-lg-4 col-md-6 mb-3">
             <label for="end_time" class="form-label">@lang('index.task_end_time') <span style="color: red">*</span> </label>
-            <input type="time" class="form-control" id="end_time" name="end_time" required value="{{ ( isset( $taskDetail) ? date('H:i:s', strtotime($taskDetail->end_date)) : '' )}}"
+            <input type="time" class="form-control" id="end_time" name="end_time" required value="{{ old('end_time', isset($taskDetail) ? date('H:i:s', strtotime($taskDetail->end_date)) : '') }}"
                    autocomplete="off" >
         </div>
     @endif
@@ -68,7 +66,7 @@
         <select class="form-select" id="priority" name="priority"  >
             <option value="" {{isset($taskDetail) ? '' : 'selected'}}  disabled>@lang('index.select_priority')</option>
             @foreach(\App\Models\Task::PRIORITY as $value)
-                <option value="{{$value}}" {{ (isset($taskDetail) && ($taskDetail->priority ) == $value) || ( old('priority') == $value) ? 'selected': '' }}>
+                <option value="{{$value}}" {{ old('priority', $taskDetail->priority ?? '') == $value ? 'selected' : '' }}>
                     {{ucfirst($value)}}</option>
             @endforeach
         </select>
@@ -78,28 +76,28 @@
         <label for="status" class="form-label">@lang('index.task_status') </label>
         <select class="form-select" id="status" name="status">
             <option value="" disabled {{isset($taskDetail) ? '' : 'selected'}}>@lang('index.select_task_status')</option>
-            <option value="not_started" {{ (isset($taskDetail) && $taskDetail->status == 'not_started') || old('status') == 'not_started' ? 'selected' : '' }}>@lang('index.not_started')</option>
-            <option value="in_progress" {{ (isset($taskDetail) && $taskDetail->status == 'in_progress') || old('status') == 'in_progress' ? 'selected' : '' }}>@lang('index.in_progress')</option>
-            <option value="in_review" {{ (isset($taskDetail) && $taskDetail->status == 'in_review') || old('status') == 'in_review' ? 'selected' : '' }}>@lang('index.in_review')</option>
-            <option value="completed" {{ (isset($taskDetail) && $taskDetail->status == 'completed') || old('status') == 'completed' ? 'selected' : '' }}>@lang('index.completed')</option>
-            <option value="on_hold" {{ (isset($taskDetail) && $taskDetail->status == 'on_hold') || old('status') == 'on_hold' ? 'selected' : '' }}>@lang('index.on_hold')</option>
-            <option value="cancelled" {{ (isset($taskDetail) && $taskDetail->status == 'cancelled') || old('status') == 'cancelled' ? 'selected' : '' }}>@lang('index.cancelled')</option>
+            {{-- It's better to define a STATUSES constant in the Task model --}}
+            @foreach(['not_started', 'in_progress', 'in_review', 'completed', 'on_hold', 'cancelled'] as $status)
+                <option value="{{ $status }}" {{ old('status', $taskDetail->status ?? '') == $status ? 'selected' : '' }}>
+                    @lang('index.' . $status)
+                </option>
+            @endforeach
         </select>
     </div>
 
     <div class="col-lg-4 col-md-6 mb-4">
         <div class="form-check form-switch mt-4 pt-2">
-            <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring" value="1" {{ (isset($taskDetail) && $taskDetail->is_recurring) ? 'checked' : '' }}>
+            <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring" value="1" {{ old('is_recurring', $taskDetail->is_recurring ?? 0) ? 'checked' : '' }}>
             <label class="form-check-label fw-bold" for="is_recurring">@lang('index.is_recurring')</label>
         </div>
     </div>
 
-    <div class="col-lg-4 col-md-6 mb-4 recurring_options" style="display: {{ (isset($taskDetail) && $taskDetail->is_recurring) ? 'block' : 'none' }};">
+    <div class="col-lg-4 col-md-6 mb-4 recurring_options" style="display: {{ old('is_recurring', $taskDetail->is_recurring ?? 0) ? 'block' : 'none' }};">
         <label class="form-label">@lang('index.recurring_frequency')</label>
         <select class="form-select" name="recurring_frequency">
-            <option value="daily" {{ (isset($taskDetail) && $taskDetail->recurring_frequency == 'daily') ? 'selected' : '' }}>يومياً</option>
-            <option value="weekly" {{ (isset($taskDetail) && $taskDetail->recurring_frequency == 'weekly') ? 'selected' : '' }}>أسبوعياً</option>
-            <option value="monthly" {{ (isset($taskDetail) && $taskDetail->recurring_frequency == 'monthly') ? 'selected' : '' }}>شهرياً</option>
+            <option value="daily" {{ old('recurring_frequency', $taskDetail->recurring_frequency ?? '') == 'daily' ? 'selected' : '' }}>@lang('index.daily')</option>
+            <option value="weekly" {{ old('recurring_frequency', $taskDetail->recurring_frequency ?? '') == 'weekly' ? 'selected' : '' }}>@lang('index.weekly')</option>
+            <option value="monthly" {{ old('recurring_frequency', $taskDetail->recurring_frequency ?? '') == 'monthly' ? 'selected' : '' }}>@lang('index.monthly')</option>
         </select>
     </div>
 
@@ -108,8 +106,8 @@
             <label for="employee" class="form-label">@lang('index.assign_member') <span style="color: red">*</span></label>
             <br>
             <select class="form-select" id="taskMember" name="assigned_member[]" multiple="multiple" required>
-                @if(isset($projectMember))
-                    @foreach($projectMember as $key => $datum)
+                @if(isset($projectMember)) {{-- This is for create from project page --}}
+                    @foreach($projectMember as $datum)
                         <option value="{{$datum->user->id}}"  >{{ucfirst($datum->user->name)}}</option>
                     @endforeach
                 @endif
@@ -121,8 +119,8 @@
             <br>
             <select class="form-select" id="taskMember" name="assigned_member[]" multiple="multiple" required>
                 @if(isset($taskDetail))
-                    @foreach($taskDetail->project->assignedMembers as $key => $value)
-                        <option value="{{$value->user->id}}" {{ isset($taskDetail) && in_array($value->user->id,$memberId)  ? 'selected' : '' }}  >{{ucfirst($value->user->name)}}</option>
+                    @foreach($taskDetail->project->assignedMembers as $value)
+                        <option value="{{$value->user->id}}" {{ in_array($value->user->id, old('assigned_member', $memberId ?? [])) ? 'selected' : '' }}  >{{ucfirst($value->user->name)}}</option>
                     @endforeach
                 @endif
             </select>
@@ -131,7 +129,7 @@
 
     <div class="col-lg-12 mb-4">
         <label for="description" class="form-label">@lang('index.description')<span style="color: red">*</span></label>
-        <textarea class="form-control" name="description" id="tinymceExample" rows="4">{{ ( isset($taskDetail) ? $taskDetail->description: old('description') )}}</textarea>
+        <textarea class="form-control" name="description" id="tinymceExample" rows="4">{{ old('description', $taskDetail->description ?? '') }}</textarea>
     </div>
 
     @if(isset($taskDetail))

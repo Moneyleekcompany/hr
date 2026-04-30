@@ -43,8 +43,13 @@ class SyncZktecoAttendanceJob implements ShouldQueue
                     if ($zk->connect()) {
                         $attendanceLogs = $zk->getAttendance();
                         if (!empty($attendanceLogs)) {
+                            
+                            // تحسين الأداء: جلب جميع الموظفين مرة واحدة لمنع استعلام قاعدة البيانات آلاف المرات (N+1 Query Problem)
+                            $employeeCodes = array_unique(array_column($attendanceLogs, 'id'));
+                            $users = User::whereIn('employee_code', $employeeCodes)->get()->keyBy('employee_code');
+
                             foreach ($attendanceLogs as $log) {
-                                $user = User::where('employee_code', $log['id'])->first();
+                                $user = $users->get($log['id']);
                                 if ($user) {
                                     $recordTime = Carbon::parse($log['timestamp']);
                                     $date = $recordTime->format('Y-m-d');

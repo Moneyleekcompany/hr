@@ -110,19 +110,31 @@
             })
         })
 
-        $('.delete').click(function (event) {
+        // تم تعديل هذا الجزء لزيادة الأمان
+        $('body').on('click', '.delete', function (event) {
             event.preventDefault();
             let href = $(this).data('href');
             Swal.fire({
                 title: '@lang('index.delete_task_detail_confirm')',
                 showDenyButton: true,
+                showCancelButton: false,
                 confirmButtonText: `@lang('index.yes')`,
                 denyButtonText: `@lang('index.no')`,
                 padding:'10px 50px 10px 50px',
                 allowOutsideClick: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = href;
+                    $.ajax({
+                        url: href,
+                        type: 'DELETE',
+                        success: function(response) {
+                            // اعادة تحميل الصفحة أو توجيه المستخدم لقائمة المهام
+                            window.location.reload();
+                        },
+                        error: function(xhr) {
+                           Swal.fire('خطأ!', 'لم يتم حذف المهمة.', 'error');
+                        }
+                    });
                 }
             })
         })
