@@ -81,6 +81,15 @@
             $(this).hide();
         });
 
+        // الإرسال السريع بالضغط على Enter
+        $('body').on('keydown', '#description', function(e) {
+            // إذا تم الضغط على Enter ولم يتم الضغط على Shift (لكتابة سطر جديد)
+            if (e.which === 13 && !e.shiftKey) {
+                e.preventDefault();
+                $('#commentSubmit').click();
+            }
+        });
+
         $('body').on('click','#commentSubmit',function(e){
             e.preventDefault()
             let url = $('#taskCommentForm').attr('action');;
@@ -115,44 +124,39 @@
                         $('.commentsCount').text(totalComments)
                         let count = 0;
 
-                        $('<div class="comment-box parentComment'+id+'">'+
-                                '<div class="comment-image text-center mt-2">'+
-                                    '<img class="rounded-circle checklist-image" style="object-fit: cover" title="'+createdBy+'"  src="'+avatar+'" alt="profile">'+
-                                '</div>'+
-
-                                '<div class="comment-content rounded w-100">'
-                                    +'<h5 class="mb-1">'+ createdBy +'</h5>'+
-                                    '<p class="comment-date text-muted">'+createdAt +'</p>'+
-                                    '<p class="comment" id="'+spanId+'">'
-                                       + description +
-                                    '</p>'+
-                                    '<div class="comment-reply position-relative commentReply'+id+'">'+
-
-                                        '<div class="row number-reply d-flex align-items-center justify-content-between">'+
-
-                                            '<div class="col-lg-6">'+
-                                                '<p class="text-muted pt-1" id="showReply" data-id="'+id+'">'+
-                                                    '<span class="replyCount'+id+'">'+count+ '</span>'+ ' reply'+
-                                                '</p>'+
-                                            '</div>'+
-
-                                            '<div class="col-lg-6">'+
-                                                '<button data-mention="'+createdBy+'" data-comment="'+id+'" class="replyCreate btn btn-secondary btn-xs float-end">'+
-
-                                                '@lang('index.reply')</button>'+
-                                            '</div>'+
-
+                        $('<div class="comment-box parentComment'+id+' d-flex align-items-start gap-3 mb-4">'+
+                            '<div class="comment-image flex-shrink-0 mt-1">'+
+                                '<img class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover;" title="'+createdBy+'" src="'+avatar+'" alt="profile">'+
+                            '</div>'+
+                            '<div class="comment-content bg-light p-4 rounded-4 w-100 position-relative shadow-sm">'
+                                +'<div class="d-flex justify-content-between align-items-center mb-2">'
+                                    +'<h6 class="mb-0 fw-bold text-primary">'+ createdBy +'</h6>'
+                                    +'<small class="text-muted" style="font-size: 12px;">'+createdAt +'</small>'
+                                +'</div>'
+                                +'<p class="comment mb-3 text-dark" id="'+spanId+'" style="line-height: 1.6;">'
+                                   + description +
+                                '</p>'+
+                                '<div class="comment-reply position-relative commentReply'+id+' border-top border-light pt-3 mt-2">'+
+                                    '<div class="row number-reply d-flex align-items-center justify-content-between">'+
+                                        '<div class="col-lg-6">'+
+                                            '<p class="text-muted mb-0 small cursor-pointer" id="showReply" data-id="'+id+'">'+
+                                                '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-message-circle me-1"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>'
+                                                +'<span class="replyCount'+id+' fw-bold">'+count+ '</span> '+ '@lang('index.reply')'+
+                                            '</p>'+
                                         '</div>'+
-
-                                        '<div class="reply'+id+'" id="cmntReply">'+
-
+                                        '<div class="col-lg-6 text-end">'+
+                                            '<button data-mention="'+createdBy+'" data-comment="'+id+'" class="replyCreate btn btn-outline-primary btn-sm rounded-pill px-3 py-1">'+
+                                            '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-corner-up-left me-1"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>'
+                                            +'@lang('index.reply')</button>'+
                                         '</div>'+
                                     '</div>'+
-                                    '<a class="commentDelete" data-comment="'+id+'" id="deleteComment" data-id="'+id+'" data-title="Comment" href="'+commentDeleteRoute+'">'+
-                                        '<i class="link-icon fst-normal" data-feather="x">'+'x</i>'+
-                                    '</a>'+
+                                    '<div class="reply'+id+' mt-3" id="cmntReply"></div>'+
                                 '</div>'+
-                            '</div>')
+                                '<a class="commentDelete position-absolute top-0 end-0 mt-3 me-3 text-danger opacity-75" data-comment="'+id+'" id="deleteComment" data-id="'+id+'" data-title="Comment" href="'+commentDeleteRoute+'" style="cursor: pointer; transition: 0.2s;">'+
+                                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>'+
+                                '</a>'+
+                            '</div>'+
+                        '</div>')
                             .appendTo(".commentsAdd");
 
                         if(mentioned.length > 0){
@@ -172,20 +176,22 @@
                         let totalReplies = parseInt(repliesCount) + 1;
                         $('.replyCount'+commentId+'').text(totalReplies);
                         $(
-                            '<div class="comment-box ps-4 mt-2 singleReply'+id+'">'+
-                                '<div class="comment-image text-center mt-2">'+
-                                    '<img class="rounded-circle checklist-image" style="object-fit: cover" title="'+createdBy+'" src="'+avatar+'"  alt="profile">'+
+                            '<div class="comment-box d-flex align-items-start gap-2 mt-3 singleReply'+id+'">'+
+                                '<div class="comment-image flex-shrink-0 mt-1">'+
+                                    '<img class="rounded-circle shadow-sm" style="width: 35px; height: 35px; object-fit: cover;" title="'+createdBy+'" src="'+avatar+'"  alt="profile">'+
                                 '</div>'+
-                                    '<div class="comment-content rounded w-100 bg-white">'+
-                                       ' <h5 class="mb-1">'+ createdBy +' </h5>'+
-                                        '<p class="comment-date text-muted">'+createdAt +'</p>'+
-                                        '<p class="comment" id="'+spanReplyId+'">'
-                                            + description +
-                                        '</p>'+
-                                        '<a class="replyDelete" id="deleteComment" data-title="Reply" data-comment="'+commentId+'" data-id="'+id+'" href="'+replyDeleteRoute+'">'+
-                                            '<i class="link-icon fst-normal" data-feather="x">'+'x</i>'+
-                                        '</a>'+
+                                '<div class="comment-content bg-white border border-light p-3 rounded-4 w-100 position-relative shadow-sm">'+
+                                    '<div class="d-flex justify-content-between align-items-center mb-1">'+
+                                       ' <h6 class="mb-0 fw-bold text-secondary" style="font-size: 14px;">'+ createdBy +' </h6>'+
+                                        '<small class="text-muted" style="font-size: 11px;">'+createdAt +'</small>'+
                                     '</div>'+
+                                    '<p class="comment mb-0 text-dark" id="'+spanReplyId+'" style="line-height: 1.5; font-size: 14px;">'
+                                        + description +
+                                    '</p>'+
+                                    '<a class="replyDelete position-absolute top-0 end-0 mt-2 me-2 text-danger opacity-75" id="deleteComment" data-title="Reply" data-comment="'+commentId+'" data-id="'+id+'" href="'+replyDeleteRoute+'" style="cursor: pointer; transition: 0.2s;">'+
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>'+
+                                    '</a>'+
+                                '</div>'+
                             '</div>'
                         ).appendTo(".reply"+commentId+"");
 

@@ -10,34 +10,40 @@
         $('.successStopWorking').hide();
 
         function showLoader() {
-            $('#loader').show();
+            Swal.fire({
+                title: 'جاري جلب البيانات...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
         }
 
         function hideLoader() {
-            $("#loader").hide();
+            Swal.close();
         }
 
         setInterval(drawClock, 1000);
 
+        // منطق الساعة الرقمية
         function drawClock(){
             let now = new Date();
             let hr = now.getHours();
             let min = now.getMinutes();
             let sec = now.getSeconds();
-            let hr_rotation = 30 * hr + min / 2;
-            let min_rotation = 6 * min;
-            let sec_rotation = 6 * sec;
-            hour.style.transform = `rotate(${hr_rotation}deg)`;
-            minute.style.transform = `rotate(${min_rotation}deg)`;
-            second.style.transform = `rotate(${sec_rotation}deg)`;
-
-            // display weekday and date
-            // const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            // const weekday = weekdays[now.getDay()];
-            // const date = now.toLocaleDateString();
-            //
-            // const dateDiv = document.getElementById('date');
-            // dateDiv.innerText = `${weekday}, ${date}`;
+            let ampm = hr >= 12 ? 'PM' : 'AM';
+            
+            hr = hr % 12;
+            hr = hr ? hr : 12; 
+            
+            hr = hr < 10 ? '0' + hr : hr;
+            min = min < 10 ? '0' + min : min;
+            sec = sec < 10 ? '0' + sec : sec;
+            
+            if(document.getElementById('d-hour')) document.getElementById('d-hour').innerText = hr;
+            if(document.getElementById('d-minute')) document.getElementById('d-minute').innerText = min;
+            if(document.getElementById('d-second')) document.getElementById('d-second').innerText = sec;
+            if(document.getElementById('d-ampm')) document.getElementById('d-ampm').innerText = ampm;
         }
 
         let tasksChart = new Chart(document.getElementById("tasksChart"), {
@@ -52,7 +58,7 @@
                 datasets: [{
                     label: 'Task state',
                     type: 'doughnut',
-                    backgroundColor: ["#7ee5e5","#f77eb9","#4d8af0","#00ff00","#FF0000"],
+                    backgroundColor: ["#93c5fd", "#fde047", "#60a5fa", "#34d399", "#f87171"], // ألوان باستيل هادئة
                     borderColor: [
                         'rgba(256, 256, 256, 1)',
                         'rgba(256, 256, 256, 1)',
@@ -94,7 +100,7 @@
             translatedStrings.completed,
             translatedStrings.cancelled
         ];
-        let barColors = ["#7ee5e5","#f77eb9","#4d8af0","green",'red'];
+        let barColors = ["#93c5fd", "#fde047", "#60a5fa", "#34d399", "#f87171"]; // نفس ألوان الباستيل
         let barData = [
             {{$projectCardDetail['not_started']}},
             {{$projectCardDetail['on_hold']}},
@@ -120,8 +126,12 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 scales: {
+                    x: {
+                        grid: { display: false, drawBorder: false }
+                    },
                     y: {
                         beginAtZero: true,
+                        grid: { borderDash: [5, 5], drawBorder: false, color: '#f1f5f9' }
                     }
                 },
                 plugins: {
@@ -133,7 +143,7 @@
                         text: 'Project Bar Chart'
                     }
                 },
-                barThickness: 50,
+                barThickness: 30,
 
             }
         });
@@ -145,6 +155,15 @@
     let currentLng = null;
     let videoStream = null;
     let isMockLocationDetected = true;
+
+    // إعداد الإشعارات الجانبية (Toast)
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+    });
 
         $("#startWorkingBtn").click(function(e) {
             e.preventDefault();
@@ -171,10 +190,10 @@
             openCameraModal();
             }).catch(function (error) {
                 hideLoader();
-                $('#flashAttendanceMessage').removeClass('d-none');
-                $('.errorStartWorking').show();
-                $('.errorStartWorkingMessage').text("Error occurred while retrieving location: "+error.message);
-                $('div.alert.alert-danger').not('.alert-important').delay(5000).slideUp(900);
+                Toast.fire({
+                    icon: 'error',
+                    title: "خطأ في تحديد الموقع: " + error.message
+                });
             });
     }
 
@@ -200,6 +219,10 @@
     });
 
     $('#captureBtn').click(function() {
+        let btn = $(this);
+        let originalText = btn.html();
+        btn.html('<i class="spinner-border spinner-border-sm me-2"></i> جاري التسجيل...').prop('disabled', true);
+
         let video = document.getElementById('cameraVideo');
         let canvas = document.getElementById('cameraCanvas');
         canvas.width = video.videoWidth;
@@ -207,11 +230,10 @@
         canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
         let imageData = canvas.toDataURL('image/png'); 
 
-        $('#cameraModal').modal('hide');
-        submitAttendance(imageData);
+        submitAttendance(imageData, btn, originalText);
     });
 
-    function submitAttendance(imageData) {
+    function submitAttendance(imageData, btn, originalText) {
         showLoader();
         $.ajax({
             type: "POST",
@@ -224,33 +246,34 @@
                 is_mock: isMockLocationDetected
             },
             success: function(response){
+                $('#cameraModal').modal('hide');
+                btn.html(originalText).prop('disabled', false); // إعادة الزر لحالته
+
                 let audio = new Audio(currentAudio);
                 audio.play();
                 if(currentAttendanceType === 'checkIn') {
                     $('#startWorkingBtn').addClass('d-none');
                     $('#stopWorkingBtn').removeClass('d-none'); // إظهار زر الانصراف
                     $('#checkInTime').text(response.data.check_in_at);
-                    $('.successStartWorking').show();
-                    $('.successStartWorkingMessage').text(response.message);
                 } else {
                     $('#stopWorkingBtn').addClass('d-none');
-                    // قد تحتاج لإظهار زر الحضور مجدداً لو كان هناك تسجيلات متعددة
                     $('#checkOutTime').text(response.data.check_out_at);
-                    $('.successStopWorking').show();
-                    $('.successStopWorkingMessage').text(response.message);
                 }
-                $('#flashAttendanceMessage').removeClass('d-none');
-                $('div.alert.alert-success').not('.alert-important').delay(3000).slideUp(900);
-                // location.reload(); // تم إلغاء إعادة التحميل لتحسين تجربة المستخدم
+                Toast.fire({
+                    icon: 'success',
+                    title: response.message
+                });
             },
             error: function(jqXHR, textStatus, errorThrown) {
+                $('#cameraModal').modal('hide');
+                btn.html(originalText).prop('disabled', false);
+
                 let errorObj = jqXHR.responseJSON || JSON.parse(jqXHR.responseText);
                 let errorMessage = errorObj.message || errorThrown;
-                $('#flashAttendanceMessage').removeClass('d-none');
-                $('.errorStopWorking').show();
-                $('.errorStopWorkingMessage').text(errorMessage);
-                $('div.alert.alert-danger').not('.alert-important').delay(5000).slideUp(900);
-                // location.reload();
+                Toast.fire({
+                    icon: 'error',
+                    title: errorMessage
+                });
             },
             complete: function() {
                 hideLoader();
@@ -284,10 +307,10 @@
                 });
             } else {
                 hideLoader();
-                $('#flashAttendanceMessage').removeClass('d-none');
-                $('.errorStartWorking').show();
-                $('.errorStartWorkingMessage').text('Geolocation is not supported by this browser.');
-                $('div.alert.alert-danger').not('.alert-important').delay(5000).slideUp(900);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'متصفحك لا يدعم تحديد الموقع (Geolocation).'
+                });
             }
         }
     });

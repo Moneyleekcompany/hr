@@ -150,6 +150,12 @@
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
         @endif
 
+        /* --- تحسينات القائمة الجانبية (Sidebar) --- */
+        .sidebar {
+            border-right: none !important;
+            box-shadow: 4px 0 25px rgba(0, 0, 0, 0.03) !important;
+        }
+        
         /* 2. تحسين القائمة الجانبية (Modern Sidebar Links) */
         .sidebar .nav-link {
             border-radius: 12px !important;
@@ -167,6 +173,56 @@
             box-shadow: 0 4px 12px rgba(138, 12, 81, 0.3) !important;
         }
         
+        /* --- تحسينات الشريط العلوي (Navbar) --- */
+        .navbar {
+            background: @if(\App\Helpers\AppHelper::getTheme() == 'dark') rgba(30, 41, 59, 0.85) @else rgba(255, 255, 255, 0.85) @endif !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border-bottom: none !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+            margin: 15px 25px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            width: calc(100% - 330px) !important; /* 280px sidebar + 50px margins */
+        }
+        @media (max-width: 991px) {
+            .navbar {
+                width: calc(100% - 50px) !important;
+                left: 25px !important;
+                margin: 15px auto;
+            }
+        }
+
+        /* الجداول العائمة (Floating Tables) - عام لكل النظام */
+        .table.custom-table { border-collapse: separate; border-spacing: 0 8px; }
+        .table.custom-table thead th { border: none; background: transparent; color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; padding-bottom: 0.5rem; }
+        .table.custom-table tbody tr { background: @if(\App\Helpers\AppHelper::getTheme() == 'dark') #1e293b @else #ffffff @endif; box-shadow: 0 2px 10px rgba(0,0,0,0.02); transition: all 0.2s ease-in-out; border-radius: 10px; }
+        .table.custom-table tbody tr:hover { transform: translateY(-2px) scale(1.005); box-shadow: 0 10px 25px rgba(138, 12, 81, 0.1); z-index: 2; position: relative; }
+        .table.custom-table tbody td { border: none; padding: 15px !important; vertical-align: middle; }
+        .table.custom-table tbody td:first-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+        .table.custom-table tbody td:last-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+
+        /* شريط البحث الذكي (Omnibar Ctrl+K) */
+        .card-admin-search {
+            position: fixed !important;
+            top: 15% !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 90% !important;
+            max-width: 600px !important;
+            background: @if(\App\Helpers\AppHelper::getTheme() == 'dark') rgba(30, 41, 59, 0.95) @else rgba(255, 255, 255, 0.95) @endif !important;
+            backdrop-filter: blur(15px) !important;
+            border-radius: 15px !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            z-index: 9999 !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        }
+        .card-admin-search .list-group-item { border: none !important; background: transparent !important; padding: 10px 20px !important; font-size: 1.1rem !important; transition: all 0.2s; border-radius: 8px !important; margin: 2px 10px !important; }
+        .card-admin-search .list-group-item.highlight, .card-admin-search .list-group-item:hover { background: rgba(138, 12, 81, 0.1) !important; color: #8a0c51 !important; padding-left: 25px !important; }
+        
+        /* تظليل خلفية الشاشة عند فتح البحث */
+        body.search-active::after { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 9998; }
+
         /* 3. تحسين شكل الحالات (Soft Badges) */
         .badge { padding: 0.45em 0.85em; border-radius: 8px; font-weight: 700; letter-spacing: 0.3px; }
         .badge.bg-success { background-color: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; }

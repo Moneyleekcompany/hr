@@ -1,4 +1,26 @@
-<div class="row">
+<style>
+    /* تحسينات النماذج (Modern Inputs) */
+    .form-control, .form-select {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        color: #1e293b;
+    }
+    .form-control:focus, .form-select:focus {
+        background-color: #ffffff;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); /* توهج ناعم Glow */
+        transform: translateY(-1px);
+    }
+    .form-label { font-weight: 700; color: #475569; margin-bottom: 0.5rem; font-size: 0.9rem; }
+</style>
+
+<div class="row g-4">
+    <!-- القسم الأول: البيانات الأساسية -->
+    <div class="col-12 animate-fade-in"><div class="card shadow-sm border-0"><div class="card-header bg-light fw-bold"><i class="link-icon me-2" data-feather="info"></i> البيانات الأساسية</div><div class="card-body"><div class="row">
     <div class="col-lg-4 col-md-6 mb-4">
         <label for="title" class="form-label">@lang('index.task_name') <span style="color: red">*</span></label>
         <input type="text" class="form-control" id="name" name="name" required value="{{ old('name', $taskDetail->name ?? '') }}"
@@ -25,7 +47,12 @@
             </select>
         </div>
     @endif
+    </div></div></div>
+    </div>
 
+    <!-- القسم الثاني: التواريخ والمواعيد والحالة -->
+    <div class="col-12 animate-fade-in delay-1">
+        <div class="card shadow-sm border-0"><div class="card-header bg-light fw-bold"><i class="link-icon me-2" data-feather="calendar"></i> التواريخ والمواعيد</div><div class="card-body"><div class="row">
     <div class="col-lg-4 col-md-6 mb-4">
         <label for="start_date" class="form-label">@lang('index.task_start_date') <span style="color: red">*</span> </label>
         @if($isBsEnabled)
@@ -100,9 +127,14 @@
             <option value="monthly" {{ old('recurring_frequency', $taskDetail->recurring_frequency ?? '') == 'monthly' ? 'selected' : '' }}>@lang('index.monthly')</option>
         </select>
     </div>
+    </div></div></div>
+    </div>
 
+    <!-- القسم الثالث: التعيين والوصف والمرفقات -->
+    <div class="col-12 animate-fade-in delay-2">
+        <div class="card shadow-sm border-0"><div class="card-header bg-light fw-bold"><i class="link-icon me-2" data-feather="users"></i> التعيين والتفاصيل</div><div class="card-body"><div class="row">
     @if(isset($projectMember))
-        <div class=" col-lg-12 mb-3">
+        <div class=" col-lg-12 mb-4">
             <label for="employee" class="form-label">@lang('index.assign_member') <span style="color: red">*</span></label>
             <br>
             <select class="form-select" id="taskMember" name="assigned_member[]" multiple="multiple" required>
@@ -114,7 +146,7 @@
             </select>
         </div>
     @else
-        <div class=" col-lg-12 mb-3 taskMemberAssignDiv">
+        <div class=" col-lg-12 mb-4 taskMemberAssignDiv">
             <label for="employee" class="form-label">@lang('index.assign_member') <span style="color: red">*</span></label>
             <br>
             <select class="form-select" id="taskMember" name="assigned_member[]" multiple="multiple" required>
@@ -200,14 +232,15 @@
                    accept=".pdf,.jpg,.jpeg,.png,.docx,.doc,.xls,.txt,.zip"  multiple />
         </div>
     </div>
+    </div></div></div>
+    </div>
     <input type="hidden" readonly id="taskNotification" name="notification" value="0">
 
-    <div class="col-12">
-        <button type="submit" class="btn btn-primary me-2"><i class="link-icon" data-feather="{{isset($taskDetail)? 'edit-2':'plus'}}"></i> {{isset($taskDetail)? __('index.update_task') : __('index.create_task')}}</button>
+    <div class="col-12 d-flex gap-3 animate-fade-in delay-3">
+        <button type="submit" class="btn btn-primary me-2 rounded-pill px-4 shadow-sm"><i class="link-icon" data-feather="{{isset($taskDetail)? 'edit-2':'plus'}}"></i> {{isset($taskDetail)? __('index.update_task') : __('index.create_task')}}</button>
 
-        <button type="submit" id="withTaskNotification" class="btn btn-primary">
+        <button type="submit" id="withTaskNotification" class="btn btn-outline-primary rounded-pill px-4 shadow-sm">
             <i class="link-icon" data-feather="{{isset($taskDetail)? 'edit-2':'plus'}}"></i>
             {{isset($taskDetail)?  __('index.update_send'): __('index.create_send')}}
-        </button>
+        </button>    
     </div>
-</div>

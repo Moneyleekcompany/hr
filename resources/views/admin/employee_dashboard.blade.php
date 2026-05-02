@@ -1,7 +1,65 @@
 @extends('layouts.master')
 
+@section('styles')
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary-color: #6366f1;
+        --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        --hover-shadow: 0 10px 25px rgba(99, 102, 241, 0.1);
+    }
+
+    body, * { font-family: 'Cairo', sans-serif !important; }
+    body { background-color: #f8fafc !important; }
+    
+    .glass-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease-in-out;
+    }
+    .glass-card:hover { transform: translateY(-5px); box-shadow: var(--hover-shadow); }
+
+    /* انسيابية الظهور */
+    @keyframes slideUpFade { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-slide-up { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+
+    /* جداول عصرية للموظف */
+    .table.custom-table { border-collapse: separate; border-spacing: 0 6px; }
+    .table.custom-table thead th { border: none; color: #64748b; font-size: 0.85rem; font-weight: 600; padding-bottom: 0.5rem; }
+    .table.custom-table tbody tr { background: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: all 0.2s; border-radius: 8px; }
+    .table.custom-table tbody tr:hover { transform: scale(1.01); box-shadow: var(--hover-shadow); z-index: 2; position: relative; }
+    .table.custom-table tbody td { border: none; padding: 12px 16px; vertical-align: middle; }
+    .table.custom-table tbody td:first-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+    .table.custom-table tbody td:last-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+
+    /* Mobile Floating Action Button (FAB) */
+    .mobile-fab {
+        position: fixed;
+        bottom: 30px;
+        left: 30px; /* Arabic layout */
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        z-index: 1050;
+    }
+    @media (min-width: 768px) {
+        .mobile-fab { display: none !important; }
+    }
+</style>
+@endsection
+
 @section('content')
-<div class="page-content">
+<div class="page-content animate-slide-up">
     <div class="d-flex justify-content-between align-items-center flex-wrap grid-margin mb-4">
         <div>
             <h4 class="mb-2 mb-md-0">مرحباً بك، {{ auth()->user()->name }} 👋</h4>
@@ -9,8 +67,26 @@
         </div>
     </div>
 
+    <!-- تجميعه المهام (Gamification) -->
+    <div class="row mb-4 animate-slide-up delay-1">
+        <div class="col-12 stretch-card">
+            <div class="card glass-card border-0" style="border-radius: 15px;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="card-title mb-0">مستوى التزامك بالحضور هذا الشهر 🌟</h6>
+                        <span class="text-primary fw-bold">ممتاز (92%)</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 10px; border-radius: 5px; background-color: #f1f5f9;">
+                        <div class="progress-bar bg-gradient-primary" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <p class="text-muted small mb-0">أنت من أفضل 10% من الموظفين التزاماً بالوقت هذا الشهر! استمر في هذا الأداء الرائع لفتح المكافآت.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- بطاقات الإحصائيات الملونة -->
-    <div class="row">
+    <div class="row animate-slide-up delay-2">
         <!-- رصيد الإجازات المتبقي -->
         <div class="col-12 col-xl-4 stretch-card mb-4">
             <div class="card bg-primary text-white shadow-sm border-0" style="border-radius: 15px;">
@@ -72,10 +148,10 @@
         </div>
     </div>
 
-    <!-- زر تسجيل الحضور والانصراف (الخدمة الذاتية) -->
-    <div class="row justify-content-center mt-3">
+    <!-- زر تسجيل الحضور والانصراف (الخدمة الذاتية للديسكتوب) -->
+    <div class="row justify-content-center mt-3 d-none d-md-flex animate-slide-up delay-3">
         <div class="col-md-8 col-lg-6 text-center stretch-card">
-            <div class="card shadow-sm border-0" style="border-radius: 20px;">
+            <div class="card glass-card shadow-sm border-0" style="border-radius: 20px;">
                 <div class="card-body py-5">
                     <h5 class="card-title text-muted mb-4">بوابة تسجيل الدخول السريع</h5>
                     
@@ -111,18 +187,31 @@
         </div>
     </div>
 
+    <!-- زر تسجيل الحضور العائم (موبايل فقط) -->
+    @if(isset($todayAttendance) && !$todayAttendance->check_out_at)
+        <a href="{{ route('admin.employees.check-out', ['companyId' => auth()->user()->company_id ?? 1, 'userId' => auth()->id()]) }}" 
+           class="btn btn-danger mobile-fab" onclick="return confirm('هل أنت متأكد من تسجيل الانصراف الآن؟')">
+            <i data-feather="log-out" style="width: 30px; height: 30px;"></i>
+        </a>
+    @elseif(!isset($todayAttendance) || (isset($todayAttendance) && $todayAttendance->check_out_at))
+        <a href="{{ route('admin.employees.check-in', ['companyId' => auth()->user()->company_id ?? 1, 'userId' => auth()->id()]) }}" 
+           class="btn btn-primary mobile-fab shadow-lg" onclick="return confirm('هل أنت متأكد من تسجيل الحضور الآن؟')">
+            <i data-feather="log-in" style="width: 30px; height: 30px;"></i>
+        </a>
+    @endif
+
     <!-- الجداول السفلية (المهام والحضور) -->
-    <div class="row mt-4">
+    <div class="row mt-4 animate-slide-up delay-3">
         <!-- المهام الحالية -->
         <div class="col-md-6 grid-margin stretch-card mb-4">
-            <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card glass-card shadow-sm border-0" style="border-radius: 15px;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="card-title mb-0">مهامي الحالية (قيد التنفيذ)</h6>
                         <a href="{{ route('admin.tasks.index') }}" class="text-primary text-decoration-underline" style="font-size: 14px;">عرض الكل</a>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table custom-table mb-0">
                             <thead>
                                 <tr>
                                     <th>المهمة</th>
@@ -149,14 +238,14 @@
 
         <!-- سجل الحضور الأخير -->
         <div class="col-md-6 grid-margin stretch-card mb-4">
-            <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card glass-card shadow-sm border-0" style="border-radius: 15px;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="card-title mb-0">سجل حضوري الأخير</h6>
                         <a href="{{ route('admin.attendances.index') }}" class="text-primary text-decoration-underline" style="font-size: 14px;">عرض الكل</a>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table custom-table mb-0">
                             <thead>
                                 <tr>
                                     <th>التاريخ</th>

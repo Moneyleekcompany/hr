@@ -68,14 +68,16 @@
 
         });
 
-        // ctrl + Q command for focusing in admin search field
+        // Ctrl + K command for focusing in admin search field (Omnibar style)
         window.addEventListener("keydown",function (e) {
-            if (e.ctrlKey && e.keyCode === 81){
+            if ((e.ctrlKey || e.metaKey) && e.keyCode === 75){
                 if($('#nav-search').is(":focus")) {
                     return true;
                 } else {
                     e.preventDefault();
                     $('#nav-search').focus();
+                    $('.card-admin-search').fadeIn();
+                    $('body').addClass('search-active');
                 }
             }
         });
@@ -84,12 +86,14 @@
         $(document).click(function(evt) {
             if ($(evt.target).closest('#admin-search-menu').length === 0) {
                 $('.card-admin-search').hide();
+                $('body').removeClass('search-active');
             }
         });
 
         $('#admin-search-menu').focusin(function(e){
             e.preventDefault();
             $('.card-admin-search').show();
+            $('body').addClass('search-active');
         });
 
     });
