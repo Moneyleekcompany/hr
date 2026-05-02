@@ -18,8 +18,8 @@ class FacialRecognitionService
      */
     public static function verifyFace(User $user, string $uploadedImagePath): bool
     {
-        // التحقق مما إذا كانت الخاصية مفعلة مع حفظ النتيجة في الكاش لتخفيف الضغط على قاعدة البيانات
-        $isFacialRecognitionEnabled = Cache::rememberForever('facial_recognition_status', function () {
+        // إصلاح الخطأ البرمجي وتفعيل الكاش لمدة ساعة (3600 ثانية)
+        $isFacialRecognitionEnabled = Cache::remember('facial_recognition_status', 3600, function () {
             return AppSetting::where('slug', 'facial-recognition')->value('status');
         });
 

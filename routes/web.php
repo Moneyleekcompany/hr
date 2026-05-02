@@ -92,6 +92,33 @@ Route::group([
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+        /** Employee Self-Service Dashboard Route */
+        Route::get('employee-dashboard', function() {
+            $user = auth()->user();
+            $today = now()->format('Y-m-d');
+            
+            $todayAttendance = \App\Models\Attendance::where('user_id', $user->id)
+                                ->where('attendance_date', $today)
+                                ->first();
+                                
+            $todayTasksCount = \App\Models\Task::whereHas('assignedMembers', function($query) use ($user) {
+                $query->where('member_id', $user->id);
+            })->where('status', '!=', 'completed')->count();
+                                
+            $workedHoursThisMonth = \App\Models\Attendance::where('user_id', $user->id)
+                                ->whereMonth('attendance_date', now()->month)
+                                ->sum('worked_hour') ?? 0;
+
+            $recentTasks = \App\Models\Task::whereHas('assignedMembers', function($query) use ($user) {
+                $query->where('member_id', $user->id);
+            })->where('status', '!=', 'completed')->orderBy('end_date', 'asc')->limit(5)->get();
+
+            $recentAttendance = \App\Models\Attendance::where('user_id', $user->id)
+                                ->orderBy('attendance_date', 'desc')->limit(5)->get();
+
+            return view('admin.employee_dashboard', compact('todayAttendance', 'todayTasksCount', 'workedHoursThisMonth', 'recentTasks', 'recentAttendance'));
+        })->name('employee-dashboard');
+
         /** User route */
         Route::resource('users', UserController::class);
         Route::get('users/toggle-status/{id}', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
@@ -441,9 +468,14 @@ Route::group([
         Route::get('awards/delete/{id}', [AwardController::class, 'delete'])->name('awards.delete');
 
         /** language route */
-        Route::get('language/change', function() {
-            // تم تعطيل تغيير اللغة وجعلها عربية فقط
-            return redirect()->back();
+        Route::get('language/change', function(\Illuminate\Http\Request $request) {
+            $lang = $request->query('lang');
+            $allowedLangs = ['en', 'ar'];
+            if (in_array($lang, $allowedLangs)) {
+                session()->put('locale', $lang);
+                app()->setLocale($lang);
+            }
+            return redirect()->back()->with('success', 'تم تغيير لغة العرض بنجاح / Language changed successfully');
         })->name('language.change');
 
         /** Bonus route */
@@ -521,431 +553,4 @@ Route::group([
 
 Route::fallback(function() {
     return view('errors.404');
-});
- 
-Route::get('/final-setup', function () {
-    // Clear all caches first
-    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-    
-    // Now, try to run the migration
-    try {
-        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
-            '--seed' => true,
-            '--force' => true
-        ]);
-        return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅✅✅ ألف مبروووك! تم إنشاء قاعدة البيانات الجديدة والسيستم يعمل الآن!</h1><h3 style='text-align:center;'>امسح /final-setup من الرابط وافتح الموقع وسجل دخول.</h3>";
-    } catch (\Exception $e) {
-        return "<h1 style='color:red; text-align:center; margin-top:50px;'>❌ فشل الاتصال بالداتا بيز الجديدة!</h1><h3 style='text-align:center;'>تأكد من أنك كتبت اسم الداتا بيز واليوزر والباسوورد الجداد صح في ملف .env</h3><p style='text-align:center; direction:ltr;'><b>Error:</b> " . $e->getMessage() . "</p>";
-    }
-});
-
-Route::get('/fix-ui', function () {
-    $envPath = base_path('.env');
-    $env = file_get_contents($envPath);
-    $assetUrl = 'http://72.62.178.127:7777/hr.castle.eg/public';
-    
-    if (strpos($env, 'ASSET_URL=') !== false) {
-        $env = preg_replace('/ASSET_URL=.*/', 'ASSET_URL="' . $assetUrl . '"', $env);
-    } else {
-        $env .= "\nASSET_URL=\"" . $assetUrl . "\"\n";
-    }
-    
-    file_put_contents($envPath, $env);
-    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-    return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم ضبط مسارات التصميم (CSS & JS) بنجاح!</h1><h3 style='text-align:center;'>امسح /fix-ui من الرابط، واضغط (Ctrl + F5) لتحديث الصفحة.</h3>";
-});
-
-Route::get('/fix-zk', function () {
-    \Illuminate\Support\Facades\Schema::dropIfExists('zkteco_devices');
-    \Illuminate\Support\Facades\DB::table('migrations')->where('migration', 'like', '%zkteco_devices%')->delete();
-    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-    return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم تحديث قاعدة البيانات بنجاح!</h1><h3 style='text-align:center;'>ارجع للوحة التحكم وأضف الجهاز الآن.</h3>";
-});
-
-Route::get('/fix-images', function () {
-    if (!\Illuminate\Support\Facades\Schema::hasColumn('attendances', 'check_in_image')) {
-        \Illuminate\Support\Facades\Schema::table('attendances', function (\Illuminate\Database\Schema\Blueprint $table) {
-            $table->string('check_in_image')->nullable();
-            $table->string('check_out_image')->nullable();
-        });
-        return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم حل المشكلة وإضافة أعمدة الصور بنجاح!</h1><h3 style='text-align:center;'>امسح /fix-images من الرابط وارجع جرب زر السيلفي الآن.</h3>";
-    }
-    return "<h1 style='color:blue; text-align:center; margin-top:50px;'>ℹ️ الأعمدة موجودة بالفعل!</h1>";
-});
-
-Route::get('/fix-tasks-table', function () {
-    if (!\Illuminate\Support\Facades\Schema::hasTable('tasks')) {
-        \Illuminate\Support\Facades\Schema::create('tasks', function (\Illuminate\Database\Schema\Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->unsignedBigInteger('project_id')->nullable();
-            $table->text('description')->nullable();
-            $table->string('priority')->nullable()->default('medium');
-            $table->enum('status', ['not_started', 'in_progress', 'in_review', 'completed', 'cancelled', 'on_hold'])->default('not_started');
-            $table->date('start_date')->nullable();
-            $table->date('end_date')->nullable();
-            $table->time('start_time')->nullable();
-            $table->time('end_time')->nullable();
-            $table->boolean('is_recurring')->default(0);
-            $table->string('recurring_frequency')->nullable();
-            $table->boolean('is_active')->default(1);
-            $table->unsignedBigInteger('created_by')->nullable();
-            $table->unsignedBigInteger('updated_by')->nullable();
-            $table->timestamps();
-        });
-        return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم إنشاء جدول المهام (tasks) بنجاح!</h1><h3 style='text-align:center;'>امسح /fix-tasks-table من الرابط وارجع جرب إنشاء مهمة الآن.</h3>";
-    }
-    
-    return "<h1 style='color:blue; text-align:center; margin-top:50px;'>ℹ️ الجدول موجود بالفعل!</h1>";
-});
-
-Route::get('/add-approve-permission', function () {
-    // 1. التأكد من وجود الصلاحية في جدول الصلاحيات
-    $permission = \Illuminate\Support\Facades\DB::table('permissions')->where('permission_key', 'approve_task')->first();
-    if (!$permission) {
-        $permissionId = \Illuminate\Support\Facades\DB::table('permissions')->insertGetId([
-            'name' => 'اعتماد وإنهاء المهام',
-            'permission_key' => 'approve_task',
-            'permission_groups_id' => 20, // جروب إدارة المهام في نظامك
-        ]);
-    } else {
-        $permissionId = $permission->id;
-    }
-
-    // 2. إعطاء الصلاحية لدور مدير النظام (admin)
-    \Illuminate\Support\Facades\DB::table('permission_roles')->updateOrInsert(['role_id' => 1, 'permission_id' => $permissionId]);
-
-    return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم زرع صلاحية 'اعتماد وإنهاء المهام' وإضافتها للمدير بنجاح!</h1><h3 style='text-align:center;'>امسح /add-approve-permission من الرابط وارجع للسيستم.</h3>";
-});
-
-Route::get('/translate-permissions', function () {
-    $moduleTranslations = [
-        'Role' => 'إدارة الأدوار',
-        'Company' => 'إدارة الشركة',
-        'Branch' => 'إدارة الفروع',
-        'Department' => 'إدارة الأقسام',
-        'Post' => 'إدارة المسميات الوظيفية',
-        'Employee' => 'إدارة الموظفين',
-        'Setting' => 'الإعدادات',
-        'Attendance' => 'الحضور والانصراف',
-        'Leave' => 'الإجازات',
-        'Holiday' => 'العطلات',
-        'Notice' => 'التعاميم والإعلانات',
-        'Team Meeting' => 'اجتماعات الفريق',
-        'Content Management' => 'إدارة المحتوى',
-        'Shift Management' => 'إدارة الورديات',
-        'Notification' => 'الإشعارات',
-        'Support' => 'الدعم الفني',
-        'Tada' => 'البدلات والسفريات',
-        'Client' => 'العملاء',
-        'Project Management' => 'إدارة المشاريع',
-        'Task Management' => 'إدارة المهام',
-        'Dashboard' => 'لوحة التحكم',
-        'Asset Management' => 'إدارة الأصول والعهد',
-        'Mobile Notification' => 'إشعارات الجوال',
-        'Attendance Method' => 'طرق الحضور',
-        'Payroll Management' => 'إدارة مسيرات الرواتب',
-        'Payroll Setting' => 'إعدادات الرواتب',
-        'Advance Salary' => 'السلف والرواتب المقدمة',
-        'Employee Salary' => 'رواتب الموظفين',
-        'Feature Control' => 'التحكم في الميزات',
-        'Time Leave' => 'الاستئذانات (بالساعات)',
-        'Award Management' => 'إدارة المكافآت',
-        'Tax Report' => 'التقرير الضريبي',
-        'Event Management' => 'إدارة الفعاليات',
-        'Training Management' => 'إدارة التدريب',
-        'Leave Approval' => 'اعتمادات الإجازات',
-        'Employee API' => 'API الموظفين',
-        'Attendance API' => 'API الحضور',
-        'Leave API' => 'API الإجازات',
-        'Support API' => 'API الدعم',
-        'Tada API' => 'API البدلات',
-        'Task Management API' => 'API المهام',
-        'Attendance Method API' => 'API طرق الحضور',
-        'Payroll Management API' => 'API الرواتب',
-        'Advance Salary API' => 'API السلف',
-    ];
-
-    $permissionTranslations = [
-        'List Role' => 'عرض الأدوار',
-        'Create Role' => 'إنشاء دور',
-        'Edit Role' => 'تعديل دور',
-        'Delete Role' => 'حذف دور',
-        'List Permission' => 'عرض الصلاحيات',
-        'Assign Permission' => 'تعيين الصلاحيات',
-        'View Company' => 'عرض الشركة',
-        'Create Company' => 'إنشاء شركة',
-        'Edit Company' => 'تعديل شركة',
-        'List Branch' => 'عرض الفروع',
-        'Create Branch' => 'إنشاء فرع',
-        'Edit Branch' => 'تعديل فرع',
-        'Delete Branch' => 'حذف فرع',
-        'List Department' => 'عرض الأقسام',
-        'Create Department' => 'إنشاء قسم',
-        'Edit Department' => 'تعديل قسم',
-        'Delete Department' => 'حذف قسم',
-        'List Post' => 'عرض المسميات',
-        'Create Post' => 'إنشاء مسمى',
-        'Edit Post' => 'تعديل مسمى',
-        'Delete Post' => 'حذف مسمى',
-        'List Employee' => 'عرض الموظفين',
-        'Create Employee' => 'إنشاء موظف',
-        'Show Detail Employee' => 'عرض تفاصيل الموظف',
-        'Edit Employee' => 'تعديل موظف',
-        'Delete Employee' => 'حذف موظف',
-        'Change Password' => 'تغيير كلمة المرور',
-        'Force Logout Employee' => 'إنهاء الجلسة إجبارياً',
-        'List Logout Request' => 'عرض طلبات الخروج',
-        'Logout Request Accept' => 'قبول طلب الخروج',
-        'List General Setting' => 'عرض الإعدادات العامة',
-        'General Setting Update' => 'تحديث الإعدادات العامة',
-        'List App Setting' => 'عرض إعدادات التطبيق',
-        'Update App Setting' => 'تحديث إعدادات التطبيق',
-        'List Attendance' => 'عرض الحضور',
-        'Attendance CSV Export' => 'تصدير الحضور CSV',
-        'Attendance Create' => 'تسجيل حضور يدوي',
-        'Attendance Update' => 'تعديل الحضور',
-        'Attendance Show' => 'عرض تفاصيل الحضور',
-        'Attendance Delete' => 'حذف الحضور',
-        'List Leave Type' => 'عرض أنواع الإجازات',
-        'Leave Type Create' => 'إنشاء نوع إجازة',
-        'Leave Type Edit' => 'تعديل نوع إجازة',
-        'Leave Type Delete' => 'حذف نوع إجازة',
-        'List Leave Requests' => 'عرض طلبات الإجازات',
-        'Show Leave Request Detail' => 'عرض تفاصيل طلب الإجازة',
-        'Update Leave request' => 'تحديث طلب الإجازة',
-        'Request Leave' => 'طلب إجازة',
-        'Create Leave Request' => 'إنشاء طلب إجازة',
-        'Grant Admin Leave Permission' => 'صلاحيات إجازة الإدارة',
-        'List Holiday' => 'عرض العطلات',
-        'Holiday Create' => 'إنشاء عطلة',
-        'Show Detail' => 'عرض التفاصيل',
-        'Holiday Edit' => 'تعديل عطلة',
-        'Holiday Delete' => 'حذف عطلة',
-        'Csv Import Holiday' => 'استيراد العطلات CSV',
-        'List Notice' => 'عرض التعاميم',
-        'Notice Create' => 'إنشاء تعميم',
-        'Show Notice Detail' => 'عرض تفاصيل التعميم',
-        'Notice Edit' => 'تعديل تعميم',
-        'Notice Delete' => 'حذف تعميم',
-        'Send Notice' => 'إرسال تعميم',
-        'List Team Meeting' => 'عرض الاجتماعات',
-        'Team Meeting Create' => 'إنشاء اجتماع',
-        'Show Team Meeting Detail' => 'عرض تفاصيل الاجتماع',
-        'Team Meeting Edit' => 'تعديل اجتماع',
-        'Team Meeting Delete' => 'حذف اجتماع',
-        'List Content' => 'عرض المحتوى',
-        'Content Create' => 'إنشاء محتوى',
-        'Show Content Detail' => 'عرض تفاصيل المحتوى',
-        'Content Edit' => 'تعديل المحتوى',
-        'Content Delete' => 'حذف المحتوى',
-        'List Office Time' => 'عرض أوقات الدوام',
-        'Office Time Create' => 'إنشاء وقت دوام',
-        'Show Office Time Detail' => 'عرض تفاصيل وقت الدوام',
-        'Office Time Edit' => 'تعديل وقت الدوام',
-        'Office Time Delete' => 'حذف وقت الدوام',
-        'List Notification' => 'عرض الإشعارات',
-        'Notification Create' => 'إنشاء إشعار',
-        'Show Notification Detail' => 'عرض تفاصيل الإشعار',
-        'Notification Edit' => 'تعديل إشعار',
-        'Notification Delete' => 'حذف إشعار',
-        'Send Notification' => 'إرسال إشعار',
-        'View Query List' => 'عرض قائمة الاستفسارات',
-        'Show Query Detail' => 'عرض تفاصيل الاستفسار',
-        'Update Status' => 'تحديث الحالة',
-        'Delete Query' => 'حذف الاستفسار',
-        'View Tada List' => 'عرض البدلات',
-        'Create Tada' => 'إنشاء بدل',
-        'Show Tada Detail' => 'عرض تفاصيل البدل',
-        'Edit Tada' => 'تعديل بدل',
-        'Delete Tada' => 'حذف بدل',
-        'Upload Attachment' => 'رفع مرفق',
-        'Delete Attachment' => 'حذف مرفق',
-        'View Client List' => 'عرض العملاء',
-        'Create Client' => 'إنشاء عميل',
-        'Show Client Detail' => 'عرض تفاصيل العميل',
-        'Edit Client' => 'تعديل عميل',
-        'Delete Client' => 'حذف عميل',
-        'View Project List' => 'عرض المشاريع',
-        'Create Project' => 'إنشاء مشروع',
-        'Show Project Detail' => 'عرض تفاصيل المشروع',
-        'Edit Project' => 'تعديل مشروع',
-        'Delete Project' => 'حذف مشروع',
-        'Upload Project Attachment' => 'رفع مرفقات المشروع',
-        'Delete PM Attachment' => 'حذف مرفقات المشروع',
-        'View Task List' => 'عرض المهام',
-        'Create Task' => 'إنشاء مهمة',
-        'Show Task Detail' => 'عرض تفاصيل المهمة',
-        'Edit Task' => 'تعديل مهمة',
-        'Delete Task' => 'حذف مهمة',
-        'Upload Task Attachment' => 'رفع مرفقات المهمة',
-        'Create Checklist' => 'إنشاء قائمة مهام',
-        'Edit Checklist' => 'تعديل قائمة المهام',
-        'Delete Checklist' => 'حذف قائمة المهام',
-        'Create Comment' => 'إنشاء تعليق',
-        'Delete Comment' => 'حذف تعليق',
-        'Show Project Details' => 'عرض تفاصيل المشروع (باللوحة)',
-        'Show Client Details' => 'عرض تفاصيل العميل (باللوحة)',
-        'Employee Attendance' => 'حضور الموظفين (باللوحة)',
-        'View Attendance Summary' => 'عرض ملخص الحضور (باللوحة)',
-        'List Asset Type' => 'عرض أنواع الأصول',
-        'Create Asset Type' => 'إنشاء نوع أصل',
-        'Show Type Detail' => 'عرض تفاصيل نوع الأصل',
-        'Edit Asset Type' => 'تعديل نوع أصل',
-        'Delete Asset Type' => 'حذف نوع أصل',
-        'List Assets' => 'عرض الأصول',
-        'Create Assets Detail' => 'إنشاء أصل',
-        'Edit Assets Detail' => 'تعديل أصل',
-        'Show Assets Detail' => 'عرض تفاصيل الأصل',
-        'Delete Assets Detail' => 'حذف أصل',
-        'Leave Request Notification' => 'إشعار طلب إجازة',
-        'Check In Notification' => 'إشعار تسجيل الدخول',
-        'Check Out Notification' => 'إشعار تسجيل الخروج',
-        'Support Notification' => 'إشعار الدعم الفني',
-        'Tada Notification' => 'إشعار البدلات',
-        'Advance Salary Request Notification' => 'إشعار طلب السلفة',
-        'List Router' => 'عرض أجهزة الراوتر',
-        'Create Router' => 'إضافة راوتر',
-        'Edit Router' => 'تعديل راوتر',
-        'Delete Router' => 'حذف راوتر',
-        'List NFC' => 'عرض بطاقات NFC',
-        'Delete NFC' => 'حذف NFC',
-        'List QR' => 'عرض رموز QR',
-        'Create QR' => 'إنشاء QR',
-        'Edit QR' => 'تعديل QR',
-        'Delete QR' => 'حذف QR',
-        'View Payroll List' => 'عرض مسيرات الرواتب',
-        'Generate Payroll' => 'إصدار الرواتب',
-        'Show Payroll Detail' => 'عرض تفاصيل مسير الرواتب',
-        'Edit Payroll' => 'تعديل مسير الرواتب',
-        'Delete Payroll' => 'حذف مسير الرواتب',
-        'Payroll Payment' => 'الدفع',
-        'Print Payroll' => 'طباعة مسير الرواتب',
-        'Add Salary Component' => 'إضافة مكون راتب',
-        'Edit Salary Component' => 'تعديل مكون راتب',
-        'Delete Salary Component' => 'حذف مكون راتب',
-        'Add Salary Group' => 'إضافة مجموعة رواتب',
-        'Edit Salary Group' => 'تعديل مجموعة رواتب',
-        'Delete Salary Group' => 'حذف مجموعة رواتب',
-        'Add Salary TDS Rule' => 'إضافة قاعدة استقطاع',
-        'Edit Salary TDS Rule' => 'تعديل قاعدة استقطاع',
-        'Delete Salary TDS Rule' => 'حذف قاعدة استقطاع',
-        'Add OverTime Setting' => 'إضافة إعداد الإضافي',
-        'Edit OverTime Setting' => 'تعديل إعداد الإضافي',
-        'Delete OverTime Setting' => 'حذف إعداد الإضافي',
-        'Add UnderTime Setting' => 'إضافة إعداد التأخير',
-        'Edit UnderTime Setting' => 'تعديل إعداد التأخير',
-        'Add Payment Method' => 'إضافة طريقة دفع',
-        'Edit Payment Method' => 'تعديل طريقة دفع',
-        'Delete Payment Method' => 'حذف طريقة دفع',
-        'View Advance Salary List' => 'عرض قائمة السلف',
-        'Update Advance Salary' => 'تحديث السلفة',
-        'Delete Advance Salary' => 'حذف السلفة',
-        'View Employee Salary List' => 'عرض قائمة رواتب الموظفين',
-        'Add Employee Salary' => 'إضافة راتب للموظف',
-        'Employee Salary History' => 'سجل رواتب الموظف',
-        'Employee Salary Increment' => 'زيادة راتب الموظف',
-        'Edit Employee Salary' => 'تعديل راتب الموظف',
-        'Delete Employee Salary' => 'حذف راتب الموظف',
-        'Change Salary Cycle' => 'تغيير دورة الراتب',
-        'Feature List' => 'عرض الميزات',
-        'Update Feature' => 'تحديث الميزة',
-        'Time Leave List' => 'عرض قائمة الاستئذانات',
-        'Update Time Leave' => 'تحديث الاستئذان',
-        'Create Time Leave' => 'إنشاء استئذان',
-        'Award Type List' => 'عرض أنواع المكافآت',
-        'Create Award Type' => 'إنشاء نوع مكافأة',
-        'Update Award Type' => 'تحديث نوع مكافأة',
-        'Delete Award Type' => 'حذف نوع مكافأة',
-        'Award List' => 'عرض المكافآت',
-        'Create Award' => 'إنشاء مكافأة',
-        'Update Award' => 'تحديث مكافأة',
-        'Show Award Detail' => 'عرض تفاصيل المكافأة',
-        'Delete Award' => 'حذف مكافأة',
-        'View Tax Report' => 'عرض التقرير الضريبي',
-        'Edit Tax Report' => 'تعديل التقرير الضريبي',
-        'Event List' => 'عرض الفعاليات',
-        'Create Event' => 'إنشاء فعالية',
-        'Update Event' => 'تحديث فعالية',
-        'Show Event Detail' => 'عرض تفاصيل الفعالية',
-        'Delete Event' => 'حذف فعالية',
-        'Training Type List' => 'عرض أنواع التدريب',
-        'Create Training Type' => 'إنشاء نوع تدريب',
-        'Update Training Type' => 'تحديث نوع تدريب',
-        'Show Training Type' => 'عرض تفاصيل نوع التدريب',
-        'Delete Training Type' => 'حذف نوع تدريب',
-        'Trainer List' => 'عرض المدربين',
-        'Create Trainer' => 'إنشاء مدرب',
-        'Update Trainer' => 'تحديث مدرب',
-        'Show Trainer' => 'عرض تفاصيل المدرب',
-        'Delete Trainer' => 'حذف مدرب',
-        'Training List' => 'عرض التدريب',
-        'Create Training' => 'إنشاء تدريب',
-        'Update Training' => 'تحديث تدريب',
-        'Show Training' => 'عرض تفاصيل التدريب',
-        'Delete Training' => 'حذف تدريب',
-        'Leave Approval List' => 'عرض قائمة الاعتمادات',
-        'Create Leave Approval' => 'إنشاء اعتماد إجازة',
-        'Update Leave Approval' => 'تحديث اعتماد إجازة',
-        'Show Leave Approval' => 'عرض تفاصيل الاعتماد',
-        'Delete Leave Approval' => 'حذف اعتماد إجازة',
-        'View Profile' => 'عرض الملف الشخصي',
-        'Allow Password Change' => 'تغيير كلمة المرور',
-        'Update Profile' => 'تحديث الملف الشخصي',
-        'Show Team Sheet' => 'عرض ورقة الفريق',
-        'Allow CheckIn' => 'تسجيل الدخول',
-        'Allow CheckOut' => 'تسجيل الخروج',
-        'Submit Leave Request' => 'تقديم طلب إجازة',
-        'Submit Query' => 'تقديم استفسار',
-        'Submit Tada Detail' => 'تقديم تفاصيل البدل',
-        'Update Tada Detail' => 'تحديث تفاصيل البدل',
-        'Change Task Status' => 'تغيير حالة المهمة',
-        'Change Checklist Status' => 'تغيير حالة القائمة',
-        'Submit Comment' => 'إرسال تعليق',
-        'Reply Delete' => 'حذف رد',
-        'Create NFC' => 'إنشاء بطاقة NFC',
-        'View Payslip List' => 'عرض قسائم الرواتب',
-        'Payslip Detail' => 'تفاصيل قسيمة الراتب',
-        'Advance Salary List' => 'قائمة السلف',
-        'Add Advance Salary List' => 'تقديم طلب سلفة',
-        'Update Advance Salary API' => 'تحديث السلفة'
-    ];
-
-    foreach ($moduleTranslations as $en => $ar) {
-        \Illuminate\Support\Facades\DB::table('permission_groups')->where('name', $en)->update(['name' => $ar]);
-    }
-
-    foreach ($permissionTranslations as $en => $ar) {
-        \Illuminate\Support\Facades\DB::table('permissions')->where('name', $en)->update(['name' => $ar]);
-    }
-
-    return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم تعريب جميع الصلاحيات والوحدات في النظام بنجاح!</h1><h3 style='text-align:center;'>امسح /translate-permissions من الرابط وارجع لصفحة الصلاحيات.</h3>";
-});
-
-Route::get('/test-recurring-tasks', function () {
-    $tasks = \App\Models\Task::where('is_recurring', 1)->get();
-    if ($tasks->isEmpty()) {
-        return "<h2 style='text-align:center; margin-top:50px; color:red;'>لا توجد أي مهام متكررة محفوظة حالياً. قم بإنشاء مهمة متكررة أولاً!</h2>";
-    }
-    
-    $count = 0;
-    foreach ($tasks as $task) {
-        $newTask = $task->replicate();
-        $newTask->status = 'not_started'; // إعادة المهمة المنسوخة لحالة البداية
-        $newTask->start_date = now()->toDateString();
-        $newTask->end_date = now()->addDays(1)->toDateString();
-        $newTask->save();
-        
-        // نسخ الموظفين المعينين للمهمة الجديدة
-        $assignedIds = \Illuminate\Support\Facades\DB::table('task_assigned_members')->where('task_id', $task->id)->pluck('user_id')->toArray();
-        foreach ($assignedIds as $userId) {
-            \Illuminate\Support\Facades\DB::table('task_assigned_members')->insert([
-                'task_id' => $newTask->id,
-                'user_id' => $userId,
-            ]);
-        }
-        $count++;
-    }
-    return "<h1 style='color:green; text-align:center; margin-top:50px;'>✅ تم تشغيل سكريبت المهام المتكررة يدوياً بنجاح!</h1><h3 style='text-align:center;'>تم توليد وتكرار ($count) مهام جديدة للموظفين. ارجع للوحة الكانبان لتراها.</h3>";
 });

@@ -51,8 +51,15 @@ class GenerateRecurringTasks extends Command
             $newTask->save();
 
             // إعادة تعيين الموظفين للمهمة الجديدة
-            $assignedIds = DB::table('task_assigned_members')->where('task_id', $task->id)->pluck('user_id');
-            $newTask->assignedMembers()->attach($assignedIds);
+            // الاعتماد على Eloquent لجلب المعرفات وتجنب خطأ عدم وجود الجدول
+            $assignedIds = $task->assignedMembers()->pluck('member_id')->toArray();
+            
+            if (!empty($assignedIds)) {
+                foreach ($assignedIds as $memberId) {
+                    $newTask->assignedMembers()->create(['member_id' => $memberId]);
+                }
+            }
+            
             $count++;
         }
 
