@@ -25,6 +25,7 @@
                 @include('admin.section.partial.holiday')
                 @include('admin.section.partial.notice')
                 @include('admin.section.partial.payroll')
+                @include('admin.section.partial.kpi')
                 @include('admin.section.partial.leave')
                 @include('admin.section.partial.team-meeting')
                 @include('admin.section.partial.event')
@@ -40,5 +41,3 @@
         </div>
     </nav>
     <!-- partial -->
-
-

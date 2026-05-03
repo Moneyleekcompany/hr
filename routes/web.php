@@ -56,6 +56,7 @@ use App\Http\Controllers\Web\TaskController;
 use App\Http\Controllers\Web\TaxReportController;
 use App\Http\Controllers\Web\TeamMeetingController;
 use App\Http\Controllers\Web\ThemeController;
+use App\Http\Controllers\Web\KpiController;
 use App\Http\Controllers\Web\TimeLeaveController;
 use App\Http\Controllers\Web\TrainerController;
 use App\Http\Controllers\Web\TrainingController;
@@ -554,6 +555,10 @@ Route::group([
         ]);
         Route::get('training/delete/{id}', [TrainingController::class, 'delete'])->name('training.delete');
         Route::get('training/toggle-status/{id}', [TrainingController::class, 'toggleStatus'])->name('training.toggle-status');
+
+        /** KPI Management */
+        Route::resource('kpi', KpiController::class)->except(['show']);
+        Route::get('kpi/delete/{id}', [KpiController::class, 'delete'])->name('kpi.delete');
     });
 });
 
