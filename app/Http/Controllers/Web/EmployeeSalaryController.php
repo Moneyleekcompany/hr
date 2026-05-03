@@ -202,25 +202,36 @@ class EmployeeSalaryController extends Controller
 
                         $overtimeAmount = round(($totalOvertimeMinutes / 60) * ($hourRate * 1.5), 2); // الإضافي بـ 1.5
                         $undertimeDeduction = round(($totalUndertimeMinutes / 60) * $hourRate, 2); // النقص بساعة عادية
+                        
+                        // --- خصم السلف والقروض تلقائياً ---
+                        $unsettledAdvance = \App\Models\AdvanceSalary::where('employee_id', $employeeId)
+                            ->where('is_settled', 0)
+                            ->where('status', 'approved')
+                            ->sum('released_amount');
 
                         $payslipModel = \App\Models\EmployeePayslip::find($payslipId);
                         if ($payslipModel) {
                             $oldOvertime = $payslipModel->overtime ?? 0;
                             $oldUndertime = $payslipModel->undertime ?? 0;
+                            $oldAdvance = $payslipModel->advance_salary ?? 0;
 
-                            if ($overtimeAmount != $oldOvertime || $undertimeDeduction != $oldUndertime) {
+                            if ($overtimeAmount != $oldOvertime || $undertimeDeduction != $oldUndertime || $unsettledAdvance != $oldAdvance) {
                                 $netSalary = $payslipModel->net_salary - $oldOvertime + $oldUndertime;
+                                $netSalary += $oldAdvance; // إعادة السلفة القديمة للرصيد
                                 $netSalary = $netSalary + $overtimeAmount - $undertimeDeduction;
+                                $netSalary -= $unsettledAdvance; // خصم السلفة الجديدة
 
                                 $payslipModel->update([
                                     'overtime' => $overtimeAmount,
                                     'undertime' => $undertimeDeduction,
+                                    'advance_salary' => $unsettledAdvance,
                                     'net_salary' => $netSalary
                                 ]);
 
                                 if (is_object($payslip)) {
                                     $payslip->overtime = $overtimeAmount;
                                     $payslip->undertime = $undertimeDeduction;
+                                    $payslip->advance_salary = $unsettledAdvance;
                                     $payslip->net_salary = $netSalary;
                                 }
                             }

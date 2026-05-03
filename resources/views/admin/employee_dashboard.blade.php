@@ -72,14 +72,24 @@
         <div class="col-12 stretch-card">
             <div class="card glass-card border-0" style="border-radius: 15px;">
                 <div class="card-body">
+                    @php
+                        $kpiScore = isset($currentMonthKpi) ? $currentMonthKpi->total_score : 100; // 100 كافتراضي في حال لم يتم التقييم بعد
+                        $kpiLabel = 'ممتاز';
+                        $kpiColor = 'bg-primary';
+                        if($kpiScore < 50) { $kpiLabel = 'تحتاج لتطوير'; $kpiColor = 'bg-danger'; }
+                        elseif($kpiScore < 75) { $kpiLabel = 'جيد'; $kpiColor = 'bg-warning'; }
+                        elseif($kpiScore < 90) { $kpiLabel = 'جيد جداً'; $kpiColor = 'bg-info'; }
+                    @endphp
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="card-title mb-0">مستوى التزامك بالحضور هذا الشهر 🌟</h6>
-                        <span class="text-primary fw-bold">ممتاز (92%)</span>
+                        <h6 class="card-title mb-0">مستوى أدائك العام (KPI) هذا الشهر 🌟</h6>
+                        <span class="text-primary fw-bold">{{ $kpiLabel }} ({{ $kpiScore }}%)</span>
                     </div>
                     <div class="progress mb-2" style="height: 10px; border-radius: 5px; background-color: #f1f5f9;">
-                        <div class="progress-bar bg-gradient-primary" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar {{ $kpiColor }}" role="progressbar" style="width: {{ $kpiScore }}%;" aria-valuenow="{{ $kpiScore }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
-                    <p class="text-muted small mb-0">أنت من أفضل 10% من الموظفين التزاماً بالوقت هذا الشهر! استمر في هذا الأداء الرائع لفتح المكافآت.</p>
+                    <p class="text-muted small mb-0">
+                        {{ isset($currentMonthKpi->feedback) ? $currentMonthKpi->feedback : 'استمر في هذا الأداء الرائع لفتح المكافآت وتحقيق أهدافك.' }}
+                    </p>
                 </div>
             </div>
         </div>

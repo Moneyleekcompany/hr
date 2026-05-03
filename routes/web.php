@@ -116,7 +116,12 @@ Route::group([
             $recentAttendance = \App\Models\Attendance::where('user_id', $user->id)
                                 ->orderBy('attendance_date', 'desc')->limit(5)->get();
 
-            return view('admin.employee_dashboard', compact('todayAttendance', 'todayTasksCount', 'workedHoursThisMonth', 'recentTasks', 'recentAttendance'));
+            $currentMonthKpi = \App\Models\KpiEvaluation::where('user_id', $user->id)
+                                ->where('month', now()->format('m'))
+                                ->where('year', now()->format('Y'))
+                                ->first();
+
+            return view('admin.employee_dashboard', compact('todayAttendance', 'todayTasksCount', 'workedHoursThisMonth', 'recentTasks', 'recentAttendance', 'currentMonthKpi'));
         })->name('employee-dashboard');
 
         /** User route */
@@ -127,6 +132,7 @@ Route::group([
         Route::get('users/get-company-employee/{branchId}', [UserController::class, 'getAllCompanyEmployeeDetail'])->name('users.getAllCompanyUsers');
         Route::post('users/change-password/{userId}', [UserController::class, 'changePassword'])->name('users.change-password');
         Route::get('users/force-logout/{userId}', [UserController::class, 'forceLogOutEmployee'])->name('users.force-logout');
+        Route::get('users/{id}/clearance', [UserController::class, 'printClearance'])->name('users.clearance');
         Route::get('users/get-all-employees/{employeeId}', [UserController::class, 'getAllEmployeeByDepartmentId'])->name('users.getAllUsersByDepartmentId');
         Route::post('users/fetch-employees-by-department', [UserController::class, 'fetchEmployeesByDepartment'])->name('users.fetchByDepartment');
 

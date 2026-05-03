@@ -283,6 +283,8 @@ return [
     'confirm_change_workplace' => 'هل أنت متأكد أنك تريد تغيير مكان العمل؟',
     'select_supervisor' => 'اختر المشرف',
     'select_office_time' => 'اختر وقت المكتب',
+    'print_clearance' => 'طباعة إخلاء الطرف',
+    'clearance_form' => 'نموذج إخلاء طرف',
     'select_option' => 'اختر خيارًا',
     'enter_address' => 'يرجى إدخال العنوان.',
     'enter_valid_email' => 'يرجى إدخال عنوان بريد إلكتروني صالح.',

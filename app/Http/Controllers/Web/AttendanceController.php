@@ -29,6 +29,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Excel;
+use App\Services\Attendance\LocationService;
+use App\Services\Attendance\MediaService;
 
 class AttendanceController extends Controller
 {
@@ -40,6 +42,8 @@ class AttendanceController extends Controller
                                 protected UserRepository $userRepository,
                                 protected BranchRepository $branchRepo,
                                 protected AttendanceLogService $attendanceLogService,
+                                protected LocationService $locationService,
+                                protected MediaService $mediaService
     )
     {}
 
@@ -319,15 +323,8 @@ class AttendanceController extends Controller
                 if ($routerDetail && $routerDetail->branch) {
                     $branchLat = $routerDetail->branch->branch_location_latitude;
                     $branchLng = $routerDetail->branch->branch_location_longitude;
-                    
-                    if ($branchLat && $branchLng) {
-                        $distance = $this->calculateDistance($locationDetail['lat'], $locationDetail['long'], $branchLat, $branchLng);
-                        
-                        // الموظف الميداني (field) يُسمح له من أي مكان. موظف المكتب يجب أن يكون ضمن 200 متر
-                        if ($userDetail->user_type !== 'field' && $distance > 200) {
-                            throw new Exception("أنت خارج نطاق العمل! المسافة بينك وبين مقر العمل هي " . round($distance) . " متر. يجب أن تكون ضمن 200 متر.", 403);
-                        }
-                    }
+                    // استدعاء خدمة الموقع للتحقق من المسافة
+                    $this->locationService->verifyGeofence($userDetail, $locationDetail['lat'], $locationDetail['long'], $branchLat, $branchLng);
                 }
             }
 
@@ -367,28 +364,8 @@ class AttendanceController extends Controller
                 $validatedData['check_in_longitude'] = $locationData['long'] ?? $validatedData['check_in_longitude'];
 
                 if (!empty($locationData['image'])) {
-                    $imageName = 'checkin_' . $userId . '_' . time() . '.png';
-                    $imagePath = public_path('uploads/attendance');
-                    if (!file_exists($imagePath)) {
-                        mkdir($imagePath, 0777, true);
-                    }
-                    $imageParts = explode(";base64,", $locationData['image']);
-                    if (count($imageParts) == 2) {
-                        file_put_contents($imagePath . '/' . $imageName, base64_decode($imageParts[1]));
-                        $validatedData['check_in_image'] = $imageName;
-
-                        // === التحقق من الوجه بالذكاء الاصطناعي (AI Facial Recognition) ===
-                        if (!\App\Services\Attendance\FacialRecognitionService::verifyFace($userDetail, $imagePath . '/' . $imageName)) {
-                            unlink($imagePath . '/' . $imageName); // حذف الصورة المزيفة
-                            \App\Models\SecurityLog::create([
-                                'user_id' => $userId,
-                                'type' => 'تزييف الوجه (Fake Face)',
-                                'message' => 'فشل التحقق من الوجه بالذكاء الاصطناعي أثناء تسجيل الحضور.',
-                                'ip_address' => request()->ip()
-                            ]);
-                            throw new Exception("فشل التحقق من الوجه بالذكاء الاصطناعي. الصورة لا تتطابق مع صورتك الشخصية المسجلة.", 403);
-                        }
-                    }
+                    // معالجة الصورة باستخدام MediaService
+                    $validatedData['check_in_image'] = $this->mediaService->processAndVerifyImage($locationData['image'], $userDetail, 'checkin');
                 }
             }
 
@@ -432,28 +409,8 @@ class AttendanceController extends Controller
                 $validatedData['check_out_longitude'] = $locationData['long'] ?? $validatedData['check_out_longitude'];
 
                 if (!empty($locationData['image'])) {
-                    $imageName = 'checkout_' . $userId . '_' . time() . '.png';
-                    $imagePath = public_path('uploads/attendance');
-                    if (!file_exists($imagePath)) {
-                        mkdir($imagePath, 0777, true);
-                    }
-                    $imageParts = explode(";base64,", $locationData['image']);
-                    if (count($imageParts) == 2) {
-                        file_put_contents($imagePath . '/' . $imageName, base64_decode($imageParts[1]));
-                        $validatedData['check_out_image'] = $imageName;
-
-                        // === التحقق من الوجه بالذكاء الاصطناعي (AI Facial Recognition) ===
-                        if (!\App\Services\Attendance\FacialRecognitionService::verifyFace($userDetail, $imagePath . '/' . $imageName)) {
-                            unlink($imagePath . '/' . $imageName);
-                            \App\Models\SecurityLog::create([
-                                'user_id' => $userId,
-                                'type' => 'تزييف الوجه (Fake Face)',
-                                'message' => 'فشل التحقق من الوجه بالذكاء الاصطناعي أثناء تسجيل الانصراف.',
-                                'ip_address' => request()->ip()
-                            ]);
-                            throw new Exception("فشل التحقق من الوجه بالذكاء الاصطناعي. الصورة لا تتطابق مع صورتك الشخصية المسجلة.", 403);
-                        }
-                    }
+                    // معالجة الصورة باستخدام MediaService
+                    $validatedData['check_out_image'] = $this->mediaService->processAndVerifyImage($locationData['image'], $userDetail, 'checkout');
                 }
             }
 
