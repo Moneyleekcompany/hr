@@ -7,6 +7,7 @@ use App\Models\KpiEvaluation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Attendance;
 use Exception;
 
 class KpiController extends Controller
@@ -87,6 +88,39 @@ class KpiController extends Controller
             return redirect()->back()->with('success', __('index.kpi_deleted'));
         } catch (Exception $exception) {
             return redirect()->back()->with('danger', $exception->getMessage());
+        }
+    }
+
+    /**
+     * جلب درجات الموظف المقترحة بناءً على بيانات النظام تلقائياً
+     * يمكن استدعاء هذا المسار بواسطة AJAX في واجهة الإضافة (Create)
+     */
+    public function suggestScores(Request $request)
+    {
+        try {
+            $userId = $request->user_id;
+            $month = str_pad($request->month, 2, '0', STR_PAD_LEFT);
+            $year = $request->year;
+
+            // حساب إجمالي أيام العمل في الشهر
+            $totalDays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+            
+            // حساب أيام الحضور الفعلية
+            $presentDays = Attendance::where('user_id', $userId)
+                ->whereYear('attendance_date', $year)
+                ->whereMonth('attendance_date', $month)
+                ->count();
+
+            // معادلة بسيطة: (أيام الحضور / الأيام الإجمالية) * 100
+            $suggestedAttendanceScore = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 2) : 0;
+
+            return response()->json([
+                'success' => true,
+                'suggested_attendance_score' => $suggestedAttendanceScore,
+                // يمكن مستقبلاً إضافة task_score مقترح بناءً على إنجاز المهام
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }

@@ -70,6 +70,15 @@ return [
     'light_mode' => 'الوضع الفاتح',
     'dark_mode' => 'الوضع الداكن',
 
+    /** Sidebar Groups (Information Architecture) */
+    'menu_dashboard' => 'لوحة القيادة',
+    'menu_core_hr' => 'شؤون الموظفين',
+    'menu_time_attendance' => 'الوقت والحضور',
+    'menu_payroll' => 'الرواتب والماليات',
+    'menu_performance' => 'الأداء والمشاركة',
+    'menu_work_projects' => 'إدارة العمل',
+    'menu_settings' => 'الإعدادات',
+
     /** menu */
     'dashboard' => 'لوحة التحكم',
     'company_management' => 'إدارة المنشأة',

@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\User;
 use App\Models\Task;
+use App\Models\Asset;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,7 +18,8 @@ class UserObserver implements ShouldQueue
     {
         try {
             // 1. إرسال بريد إلكتروني ترحيبي للموظف
-            // Mail::to($user->email)->send(new \App\Mail\WelcomeEmployeeMail($user));
+            // نفترض وجود كلاس البريد، ويجب أن يُرسل في الخلفية
+            // Mail::to($user->email)->queue(new \App\Mail\WelcomeEmployeeMail($user));
 
             // 2. إنشاء مهام تعريفية (Onboarding Tasks) للموظف الجديد تلقائياً
             Task::create([
@@ -26,11 +28,13 @@ class UserObserver implements ShouldQueue
                 'status' => 'not_started',
                 'start_date' => now(),
                 'end_date' => now()->addDays(3),
-                // يجب تعيين الموظفين لهذه المهمة (Task Member)
             ]);
+            
+            // هنا يمكن إضافة الموظف للمهمة برمجياً
+            // \App\Models\TaskMember::create(['task_id' => $task->id, 'user_id' => $user->id]);
 
             // 3. توجيه إشعار لقسم الـ IT وإدارة العمليات لتجهيز المعدات
-            // \App\Helpers\WhatsAppHelper::sendMessage('رقم_مدير_التقنية', "موظف جديد انضم للفريق: {$user->name}. يرجى تجهيز حاسب آلي وإيميل رسمي.");
+            Log::info("إرسال إشعار لقسم الـ IT لتجهيز معدات الموظف: {$user->name}");
             
             Log::info("تم تنفيذ خطوات الـ Onboarding للموظف: {$user->name}");
         } catch (\Exception $e) {
@@ -47,14 +51,19 @@ class UserObserver implements ShouldQueue
         if ($user->isDirty('is_active') && $user->is_active == 0) {
             try {
                 // 1. توليد طلب إخلاء طرف للعهد (Assets Clearance)
-                $assets = \App\Models\Asset::where('assigned_to', $user->id)->get();
+                $assets = Asset::where('assigned_to', $user->id)->get();
                 if ($assets->count() > 0) {
                     Log::info("يوجد {$assets->count()} عهدة مسجلة على الموظف {$user->name} يجب إخلاؤها.");
-                    // يمكن هنا إنشاء مستند PDF وإرساله لمدير الموارد البشرية
+                    // إنشاء تنبيه للإدارة بوجود عهد لم تُسترد
+                    \App\Models\Notification::create([
+                        'title' => 'طلب إخلاء طرف للعهد',
+                        'description' => "الموظف {$user->name} تم إنهاء خدماته ويوجد لديه {$assets->count()} عهدة يجب استردادها.",
+                        'type' => 'alert'
+                    ]);
                 }
 
                 // 2. إيقاف حسابه من أجهزة البصمة تلقائياً
-                // (استدعاء وظيفة تحذف بصمته من جهاز ZKTeco)
+                // \App\Jobs\RemoveZktecoUserJob::dispatch($user->employee_code);
 
                 Log::info("تم تنفيذ خطوات الـ Offboarding للموظف: {$user->name}");
             } catch (\Exception $e) {
