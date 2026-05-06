@@ -621,6 +621,238 @@ body.search-active::after {
 /* ---------- Bootstrap white overrides ---------- */
 :root[data-theme="dark"] .bg-white { background-color: var(--bg-card) !important; }
 
+/* ==========================================================================
+   Reusable Components
+   ========================================================================== */
+
+/* ---------- Empty state ---------- */
+.mt-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-muted);
+    animation: mt-fade-in 0.4s ease-out both;
+}
+.mt-empty-state__icon {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in oklab, var(--color-brand-500) 10%, transparent);
+    color: var(--color-brand-500);
+    margin-bottom: 1rem;
+    font-size: 38px;
+    transition: transform var(--transition-base);
+}
+.mt-empty-state:hover .mt-empty-state__icon {
+    transform: scale(1.06) rotate(-4deg);
+}
+.mt-empty-state__title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+.mt-empty-state__desc {
+    font-size: 0.9rem;
+    max-width: 380px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* ---------- Confirm modal icon ---------- */
+.mt-confirm-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in oklab, var(--status-danger) 18%, transparent);
+    color: var(--status-danger);
+    font-size: 32px;
+    animation: mt-pop 0.35s cubic-bezier(.4, 0, .2, 1) both;
+}
+.mt-confirm-icon[data-variant="warning"] {
+    background: color-mix(in oklab, var(--status-warning) 18%, transparent);
+    color: var(--status-warning);
+}
+.mt-confirm-icon[data-variant="info"] {
+    background: color-mix(in oklab, var(--status-info) 18%, transparent);
+    color: var(--status-info);
+}
+
+/* ---------- Toast notifications ---------- */
+.mt-toast-container {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 11000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 380px;
+    pointer-events: none;
+}
+[dir="rtl"] .mt-toast-container { left: auto; right: 24px; }
+@media (max-width: 575px) {
+    .mt-toast-container { left: 12px; right: 12px; max-width: none; bottom: 88px; }
+}
+
+.mt-toast {
+    pointer-events: auto;
+    background-color: var(--bg-card);
+    color: var(--text-body);
+    border: 1px solid var(--border-strong);
+    border-inline-start: 4px solid var(--text-muted);
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 280px;
+    animation: mt-toast-in 0.35s cubic-bezier(.16, 1, .3, 1) both;
+    backdrop-filter: blur(8px);
+}
+.mt-toast.is-leaving { animation: mt-toast-out 0.25s ease-in forwards; }
+@keyframes mt-toast-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes mt-toast-out {
+    to { opacity: 0; transform: translateY(20px); }
+}
+.mt-toast__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    font-size: 18px;
+}
+.mt-toast__body { flex: 1; font-size: 0.92rem; line-height: 1.5; }
+.mt-toast__close {
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.mt-toast__close:hover { background: var(--border-soft); color: var(--text-primary); }
+
+.mt-toast--success { border-inline-start-color: var(--status-success); }
+.mt-toast--success .mt-toast__icon { background: var(--status-success-soft); color: var(--status-success); }
+.mt-toast--danger  { border-inline-start-color: var(--status-danger); }
+.mt-toast--danger .mt-toast__icon  { background: var(--status-danger-soft);  color: var(--status-danger); }
+.mt-toast--warning { border-inline-start-color: var(--status-warning); }
+.mt-toast--warning .mt-toast__icon { background: var(--status-warning-soft); color: var(--status-warning); }
+.mt-toast--info    { border-inline-start-color: var(--status-info); }
+.mt-toast--info .mt-toast__icon    { background: var(--status-info-soft);    color: var(--status-info); }
+
+/* ---------- Action menu (3-dot dropdown) ---------- */
+.mt-action-menu__toggle {
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent !important;
+    color: var(--text-muted) !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.mt-action-menu__toggle::after { display: none !important; } /* remove caret */
+.mt-action-menu__toggle:hover,
+.mt-action-menu__toggle[aria-expanded="true"] {
+    background-color: color-mix(in oklab, var(--color-brand-500) 10%, transparent) !important;
+    color: var(--color-brand-500) !important;
+    border-color: var(--border-strong) !important;
+}
+.mt-action-menu__list {
+    min-width: 180px;
+    padding: 6px !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--border-strong) !important;
+    background-color: var(--bg-elevated) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+.mt-action-menu__list .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.55rem 0.85rem !important;
+    border-radius: 10px !important;
+    color: var(--text-body) !important;
+    font-weight: 500 !important;
+    transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.mt-action-menu__list .dropdown-item:hover,
+.mt-action-menu__list .dropdown-item:focus {
+    background-color: color-mix(in oklab, var(--color-brand-500) 10%, transparent) !important;
+    transform: translateX(-2px);
+}
+[dir="rtl"] .mt-action-menu__list .dropdown-item:hover,
+[dir="rtl"] .mt-action-menu__list .dropdown-item:focus { transform: translateX(2px); }
+.mt-action-menu__list .dropdown-item.text-danger:hover {
+    background-color: color-mix(in oklab, var(--status-danger) 12%, transparent) !important;
+    color: var(--status-danger) !important;
+}
+.mt-action-menu__list .dropdown-item i { font-size: 17px; flex: none; }
+
+/* ---------- Required-field auto-marker (تنسيق النجمة) ---------- */
+.form-label.mt-required::after,
+label.mt-required::after {
+    content: '*';
+    color: var(--status-danger);
+    margin-inline-start: 4px;
+    font-weight: 700;
+}
+
+/* ---------- Table responsive scroll hint ---------- */
+.table-responsive.mt-has-overflow {
+    position: relative;
+}
+.table-responsive.mt-has-overflow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 36px;
+    pointer-events: none;
+    background: linear-gradient(
+        to right,
+        transparent 0%,
+        color-mix(in oklab, var(--bg-card) 60%, transparent) 100%
+    );
+    opacity: 0.85;
+    transition: opacity var(--transition-base);
+}
+[dir="rtl"] .table-responsive.mt-has-overflow::after {
+    left: 0;
+    right: auto;
+    background: linear-gradient(
+        to left,
+        transparent 0%,
+        color-mix(in oklab, var(--bg-card) 60%, transparent) 100%
+    );
+}
+[dir="ltr"] .table-responsive.mt-has-overflow::after,
+.table-responsive.mt-has-overflow:not([dir]):not([dir="rtl"])::after { right: 0; }
+.table-responsive.mt-has-overflow.mt-overflow--end::after { opacity: 0; }
+
 /* ---------- Pagination ---------- */
 .pagination .page-link {
     background-color: var(--bg-card) !important;

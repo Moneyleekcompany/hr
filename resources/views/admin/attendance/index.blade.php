@@ -454,11 +454,12 @@
                                 </tr>
 
                                 @empty
-                                    <tr>
-                                        <td colspan="100%">
-                                            <p class="text-center"><b>{{ __('index.no_records_found') }}</b></p>
-                                        </td>
-                                    </tr>
+                                    <x-empty-state
+                                        colspan="100"
+                                        icon="ti-calendar-off"
+                                        title="لا توجد سجلات حضور لهذا اليوم"
+                                        description="لم نجد أي بصمات أو تسجيلات حضور للفترة المحددة. جرّب تغيير الفلتر أو التاريخ."
+                                    />
                                 @endforelse
                             </tbody>
                         </table>

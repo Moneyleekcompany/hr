@@ -230,11 +230,12 @@
 
 
                                 @empty
-                                    <tr>
-                                        <td colspan="100%">
-                                            <p class="text-center"><b>{{ __('index.no_records_found') }}</b></p>
-                                        </td>
-                                    </tr>
+                                    <x-empty-state
+                                        colspan="100"
+                                        icon="ti-calendar-event"
+                                        title="لا توجد طلبات إجازة"
+                                        description="مفيش أي طلبات إجازة في الفلتر الحالي. غيّر الفلتر أو اطلب من الموظفين تقديم طلباتهم."
+                                    />
                                 @endforelse
 
                                 </tbody>

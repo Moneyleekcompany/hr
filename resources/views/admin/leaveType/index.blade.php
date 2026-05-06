@@ -85,11 +85,12 @@
 
 
                                 @empty
-                                    <tr>
-                                        <td colspan="100%">
-                                            <p class="text-center"><b>{{ __('index.no_records_found') }}</b></p>
-                                        </td>
-                                    </tr>
+                                    <x-empty-state
+                                        colspan="100"
+                                        icon="ti-list-details"
+                                        title="لا توجد أنواع إجازات"
+                                        description="أضف أنواع الإجازات (سنوية، مرضية، اضطرارية...) عشان تظهر للموظفين عند تقديم الطلبات."
+                                    />
                                 @endforelse
 
                                 </tbody>

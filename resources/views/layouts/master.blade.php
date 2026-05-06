@@ -130,6 +130,13 @@
 <!-- القائمة السفلية الذكية للموبايل -->
 <x-bottom-nav />
 
+<!-- Reusable UI components (singleton instances) -->
+<x-confirm-modal />
+<x-toast-container />
+
+<!-- Reusable components JS API: window.toast(), confirm modal, required asterisks, scroll hints -->
+<script src="{{ asset('js/ui-components.js') }}?v={{ filemtime(public_path('js/ui-components.js')) }}"></script>
+
 <!-- Global UI Transformer: animations, table modernizing, badges, dashboard hero, micro-interactions -->
 <script>
 (function () {

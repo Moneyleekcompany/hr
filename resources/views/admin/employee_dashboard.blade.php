@@ -175,7 +175,7 @@
                         <!-- زر الانصراف -->
                         <a href="{{ route('admin.employees.check-out', ['companyId' => auth()->user()->company_id ?? 1, 'userId' => auth()->id()]) }}" 
                            class="btn btn-danger btn-lg rounded-pill w-100 py-3 fs-5 shadow d-flex justify-content-center align-items-center"
-                           onclick="return confirm('هل أنت متأكد من تسجيل الانصراف الآن؟')">
+                           data-confirm="هل أنت متأكد من تسجيل الانصراف الآن؟" data-confirm-variant="warning" data-confirm-label="تأكيد">
                             <i data-feather="log-out" class="me-2"></i> تسجيل انصراف
                         </a>
                     @elseif(isset($todayAttendance) && $todayAttendance->check_out_at)
@@ -187,7 +187,7 @@
                         <!-- زر الحضور -->
                         <a href="{{ route('admin.employees.check-in', ['companyId' => auth()->user()->company_id ?? 1, 'userId' => auth()->id()]) }}" 
                            class="btn btn-primary btn-lg rounded-pill w-100 py-3 fs-5 shadow d-flex justify-content-center align-items-center"
-                           onclick="return confirm('هل أنت متأكد من تسجيل الحضور الآن؟')">
+                           data-confirm="هل أنت متأكد من تسجيل الحضور الآن؟" data-confirm-variant="warning" data-confirm-label="تأكيد">
                             <i data-feather="log-in" class="me-2"></i> تسجيل حضور
                         </a>
                     @endif
@@ -200,12 +200,12 @@
     <!-- زر تسجيل الحضور العائم (موبايل فقط) -->
     @if(isset($todayAttendance) && !$todayAttendance->check_out_at)
         <a href="{{ route('admin.employees.check-out', ['companyId' => auth()->user()->company_id ?? 1, 'userId' => auth()->id()]) }}" 
-           class="btn btn-danger mobile-fab" onclick="return confirm('هل أنت متأكد من تسجيل الانصراف الآن؟')">
+           class="btn btn-danger mobile-fab" data-confirm="هل أنت متأكد من تسجيل الانصراف الآن؟" data-confirm-variant="warning" data-confirm-label="تأكيد">
             <i data-feather="log-out" style="width: 30px; height: 30px;"></i>
         </a>
     @elseif(!isset($todayAttendance) || (isset($todayAttendance) && $todayAttendance->check_out_at))
         <a href="{{ route('admin.employees.check-in', ['companyId' => auth()->user()->company_id ?? 1, 'userId' => auth()->id()]) }}" 
-           class="btn btn-primary mobile-fab shadow-lg" onclick="return confirm('هل أنت متأكد من تسجيل الحضور الآن؟')">
+           class="btn btn-primary mobile-fab shadow-lg" data-confirm="هل أنت متأكد من تسجيل الحضور الآن؟" data-confirm-variant="warning" data-confirm-label="تأكيد">
             <i data-feather="log-in" style="width: 30px; height: 30px;"></i>
         </a>
     @endif

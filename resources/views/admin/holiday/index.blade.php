@@ -142,11 +142,12 @@
                                 @endcanany
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="100%">
-                                    <p class="text-center"><b>@lang('index.no_records_found')</b></p>
-                                </td>
-                            </tr>
+                            <x-empty-state
+                                colspan="100"
+                                icon="ti-beach"
+                                title="لا توجد إجازات/عطلات مسجلة"
+                                description="ابدأ بإضافة العطل الرسمية والإجازات السنوية لتظهر في تقويم الموظفين."
+                            />
                         @endforelse
                         </tbody>
                     </table>

@@ -99,11 +99,12 @@
                                 @endcanany
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="100%">
-                                    <p class="text-center"><b>{{ __('index.no_records_found') }}</b></p>
-                                </td>
-                            </tr>
+                            <x-empty-state
+                                colspan="100"
+                                icon="ti-building-skyscraper"
+                                title="لا توجد فروع"
+                                description="أضف فروع الشركة عشان تقدر تربط الموظفين بمواقعهم وأجهزة البصمة."
+                            />
                         @endforelse
 
                         </tbody>

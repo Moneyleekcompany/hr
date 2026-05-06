@@ -54,7 +54,7 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <a href="{{ route('admin.zkteco-devices.delete', $device->id) }}" onclick="return confirm('هل أنت متأكد من الحذف؟')">
+                                                <a href="{{ route('admin.zkteco-devices.delete', $device->id) }}" data-confirm="هل أنت متأكد من الحذف؟" data-confirm-variant="warning" data-confirm-label="تأكيد">
                                                     <i class="link-icon text-danger" data-feather="delete"></i>
                                                 </a>
                                             </li>
@@ -62,14 +62,14 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr>
-                                    <td colspan="7" class="text-center py-5">
-                                        <h5 class="text-muted mb-3">لا توجد أجهزة بصمة مضافة حالياً</h5>
-                                        <a href="{{ route('admin.zkteco-devices.create') }}" class="btn btn-primary">
-                                            <i class="link-icon" data-feather="plus"></i> اضغط هنا لإضافة أول جهاز بصمة وربطه بفرع
-                                        </a>
-                                    </td>
-                                </tr>
+                                <x-empty-state
+                                    colspan="7"
+                                    icon="ti-fingerprint"
+                                    title="لا توجد أجهزة بصمة"
+                                    description="أضف أول جهاز ZKTeco عشان تبدأ تسحب البصمات تلقائيًا من الفروع."
+                                    actionUrl="{{ route('admin.zkteco-devices.create') }}"
+                                    actionText="إضافة جهاز بصمة"
+                                />
                             @endforelse
                         </tbody>
                     </table>

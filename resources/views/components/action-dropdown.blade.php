@@ -13,7 +13,15 @@
         @endif
         @if($deleteUrl)
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger py-2 delete-btn" href="#" data-url="{{ $deleteUrl }}"><i class="fa fa-trash me-2"></i> {{ __('index.delete') }}</a></li>
+            <li>
+                <a class="dropdown-item text-danger py-2"
+                   href="{{ $deleteUrl }}"
+                   data-confirm="هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذا الإجراء."
+                   data-confirm-variant="danger"
+                   data-confirm-label="{{ __('index.delete') }}">
+                    <i class="fa fa-trash me-2"></i> {{ __('index.delete') }}
+                </a>
+            </li>
         @endif
     </ul>
 </div>
