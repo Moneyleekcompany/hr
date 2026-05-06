@@ -42,7 +42,11 @@ class Attendance extends Model
         'check_out_note',
         'night_checkin',
         'night_checkout',
-        'office_time_id'
+        'office_time_id',
+        'check_in_device_id',
+        'check_out_device_id',
+        'check_in_accuracy_m',
+        'check_out_accuracy_m',
     ];
 
     const RECORDS_PER_PAGE = 20;
@@ -55,11 +59,16 @@ class Attendance extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            $model->created_by = Auth::user()->id;
+            // الـ Job في الخلفية وأكواد النظام قد تنشئ بدون مستخدم مسجل دخول
+            if (empty($model->created_by) && Auth::check()) {
+                $model->created_by = Auth::id();
+            }
         });
 
         static::updating(function ($model) {
-            $model->updated_by = Auth::user()->id;
+            if (Auth::check()) {
+                $model->updated_by = Auth::id();
+            }
         });
 
         static::addGlobalScope('branch', function (Builder $builder) {
@@ -99,7 +108,8 @@ class Attendance extends Model
         return $this->belongsTo(OfficeTime::class, 'office_time_id', 'id');
     }
 
-
-
-
+    public function edits(): HasMany
+    {
+        return $this->hasMany(AttendanceEdit::class);
+    }
 }

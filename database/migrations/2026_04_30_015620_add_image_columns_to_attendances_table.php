@@ -1,32 +1,19 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
+// تكرار من 2026_04_29_153748 — تُرك no-op عمدًا.
+// الإضافة الفعلية للأعمدة تتم في الميجريشن الأقدم وفي
+// 2026_05_06_120000_ensure_attendance_image_columns.php للقواعد الإنتاجية.
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::table('attendances', function (Blueprint $table) {
-            //
-        });
+        // intentionally empty
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::table('attendances', function (Blueprint $table) {
-            //
-        });
+        // intentionally empty
     }
 };

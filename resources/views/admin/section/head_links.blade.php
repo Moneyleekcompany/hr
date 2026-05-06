@@ -25,10 +25,9 @@
 <link rel="stylesheet" href="{{asset('assets/vendors/flag-icon-css/css/flag-icon.min.css')}}">
 <!-- endinject -->
 
-<!-- Layout styles -->
-
-<link rel="stylesheet" href="{{ (\App\Helpers\AppHelper::getTheme() == 'dark') ? asset('assets/css/style_dark.css') : asset('assets/css/style.css') }}" id="themeColor">
-
+<!-- Layout styles (template الأصلي يوفر هيكل sidebar/navbar/grid) -->
+{{-- نُحمّل style.css دائمًا (هيكل) — الألوان والثيم يديرها modern-theme.css لاحقًا --}}
+<link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" id="legacyLayoutStyles">
 <!-- End layout styles -->
 <!-- RTL -->
 @if(in_array(App::getLocale(),['ar','fa']))

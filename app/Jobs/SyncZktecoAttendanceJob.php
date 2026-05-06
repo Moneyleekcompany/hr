@@ -2,105 +2,245 @@
 
 namespace App\Jobs;
 
+use App\Models\Attendance;
+use App\Models\User;
+use App\Models\ZktecoDevice;
+use App\Models\ZktecoUnmatchedRecord;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Rats\Zkteco\Lib\ZKTeco;
-use App\Models\User;
-use App\Models\Attendance;
-use App\Models\ZktecoDevice;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Exception;
+use Rats\Zkteco\Lib\ZKTeco;
+use Throwable;
 
 class SyncZktecoAttendanceJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    // تحديد حد أقصى للعملية لتجنب تعليق الـ Queue worker للأبد في حال عدم استجابة الجهاز (5 دقائق مثلاً)
-    public $timeout = 300;
+    /** أقصى زمن للوظيفة (5 دقائق). */
+    public int $timeout = 300;
 
-    public function handle()
+    /** عدد محاولات إعادة المحاولة على مستوى الـ Queue. */
+    public int $tries = 3;
+
+    /** تأخير المحاولات على مستوى الـ Queue (بالثواني). */
+    public function backoff(): array
     {
-        Log::info('بدء عملية سحب البصمات من الأجهزة في الخلفية.');
+        return [60, 300, 900];
+    }
 
-        try {
-            $devices = ZktecoDevice::where('is_active', true)->get();
+    public function handle(): void
+    {
+        Log::info('ZKTeco sync started');
 
-            if ($devices->isEmpty()) {
-                Log::warning('لا توجد أجهزة بصمة مضافة أو مفعلة في النظام لسحب البصمات منها.');
-                return;
+        $devices = ZktecoDevice::where('is_active', true)->get();
+        if ($devices->isEmpty()) {
+            Log::warning('ZKTeco sync: no active devices');
+            return;
+        }
+
+        $totalSuccess = 0;
+        $totalFail = 0;
+
+        foreach ($devices as $device) {
+            try {
+                $this->syncDevice($device);
+                $totalSuccess++;
+            } catch (Throwable $e) {
+                $totalFail++;
+                $this->markDeviceFailure($device, $e->getMessage());
+                Log::error('ZKTeco sync: device failed', [
+                    'device_id' => $device->id,
+                    'name' => $device->name,
+                    'ip' => $device->ip_address,
+                    'error' => $e->getMessage(),
+                ]);
             }
+        }
 
-            $successCount = 0;
-            $failCount = 0;
+        Log::info('ZKTeco sync finished', [
+            'success' => $totalSuccess,
+            'failed' => $totalFail,
+        ]);
+    }
 
-            foreach ($devices as $device) {
-                try {
-                    $zk = new ZKTeco($device->ip_address, $device->port ?? 4370);
-                    if ($zk->connect()) {
-                        $attendanceLogs = $zk->getAttendance();
-                        if (!empty($attendanceLogs)) {
-                            
-                            // تحسين الأداء: جلب جميع الموظفين مرة واحدة لمنع استعلام قاعدة البيانات آلاف المرات (N+1 Query Problem)
-                            $employeeCodes = array_unique(array_column($attendanceLogs, 'id'));
-                            $users = User::whereIn('employee_code', $employeeCodes)->get()->keyBy('employee_code');
-                            
-                            // تجميع تواريخ البصمات التي تم سحبها للبحث عنها مرة واحدة
-                            $dates = array_unique(array_map(function($log) {
-                                return Carbon::parse($log['timestamp'])->format('Y-m-d');
-                            }, $attendanceLogs));
-                            
-                            // جلب سجلات الحضور الموجودة مسبقاً في الذاكرة لتخفيف الضغط عن الـ Database
-                            $existingAttendances = Attendance::whereIn('user_id', $users->pluck('id'))
-                                ->whereIn('attendance_date', $dates)
-                                ->get()
-                                ->groupBy(function($item) {
-                                    return $item->user_id . '_' . $item->attendance_date;
-                                });
+    private function syncDevice(ZktecoDevice $device): void
+    {
+        $zk = $this->connectWithRetry($device);
+        try {
+            $logs = $zk->getAttendance() ?: [];
+        } finally {
+            try { $zk->disconnect(); } catch (Throwable) {}
+        }
 
-                            foreach ($attendanceLogs as $log) {
-                                $user = $users->get($log['id']);
-                                if ($user) {
-                                    $recordTime = Carbon::parse($log['timestamp']);
-                                    $date = $recordTime->format('Y-m-d');
-                                    $time = $recordTime->format('H:i:s');
-                                    $cacheKey = $user->id . '_' . $date;
+        if (empty($logs)) {
+            $this->markDeviceSuccess($device, null);
+            return;
+        }
 
-                                    $attendance = isset($existingAttendances[$cacheKey]) ? $existingAttendances[$cacheKey]->first() : null;
+        // Delta sync: تجاهل البصمات الأقدم من آخر بصمة معروفة لهذا الجهاز
+        $cutoff = $device->last_punch_at;
+        $newLogs = [];
+        $maxPunchAt = $cutoff;
 
-                                    if (!$attendance) {
-                                        $attendance = Attendance::create([
-                                            'user_id' => $user->id,
-                                            'company_id' => $user->company_id,
-                                            'attendance_date' => $date,
-                                            'check_in_at' => $time,
-                                            'attendance_status' => 1,
-                                        ]);
-                                        // إضافته للذاكرة لتجنب إنشائه مرة أخرى في نفس اللوب
-                                        $existingAttendances[$cacheKey] = collect([$attendance]);
-                                    } else {
-                                        if (!$attendance->check_out_at || $time > $attendance->check_out_at) {
-                                            $attendance->update(['check_out_at' => $time]);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        $zk->disconnect();
-                        $successCount++;
-                    } else {
-                        $failCount++;
+        foreach ($logs as $log) {
+            try {
+                $ts = Carbon::parse($log['timestamp']);
+            } catch (Throwable) {
+                continue;
+            }
+            if ($cutoff && $ts->lte($cutoff)) {
+                continue;
+            }
+            $newLogs[] = ['ts' => $ts, 'employee_code' => (string) ($log['id'] ?? ''), 'raw' => $log];
+            if (!$maxPunchAt || $ts->gt($maxPunchAt)) {
+                $maxPunchAt = $ts;
+            }
+        }
+
+        if (empty($newLogs)) {
+            $this->markDeviceSuccess($device, $maxPunchAt);
+            return;
+        }
+
+        $employeeCodes = array_values(array_unique(array_filter(array_column($newLogs, 'employee_code'))));
+        $users = User::whereIn('employee_code', $employeeCodes)->get()->keyBy('employee_code');
+
+        // (employee_code => [date => [punches]])
+        $grouped = [];
+        $unmatched = [];
+        foreach ($newLogs as $entry) {
+            $code = $entry['employee_code'];
+            if ($code === '' || !$users->has($code)) {
+                $unmatched[] = $entry;
+                continue;
+            }
+            $date = $entry['ts']->format('Y-m-d');
+            $grouped[$code][$date][] = $entry['ts'];
+        }
+
+        DB::transaction(function () use ($grouped, $users, $device) {
+            foreach ($grouped as $code => $byDate) {
+                $user = $users->get($code);
+                foreach ($byDate as $date => $timestamps) {
+                    sort($timestamps);
+                    $first = $timestamps[0];
+                    $last = end($timestamps);
+
+                    $attendance = Attendance::withoutGlobalScopes()
+                        ->where('user_id', $user->id)
+                        ->where('attendance_date', $date)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$attendance) {
+                        Attendance::create([
+                            'user_id' => $user->id,
+                            'company_id' => $user->company_id,
+                            'attendance_date' => $date,
+                            'check_in_at' => $first->format('H:i:s'),
+                            'check_out_at' => $last->ne($first) ? $last->format('H:i:s') : null,
+                            'attendance_status' => Attendance::ATTENDANCE_APPROVED,
+                            'check_in_type' => 'fingerprint',
+                            'check_out_type' => $last->ne($first) ? 'fingerprint' : null,
+                            'created_by' => $user->id,
+                        ]);
+                        continue;
                     }
-                } catch (Exception $e) {
-                    $failCount++;
+
+                    $updates = [];
+                    if (!$attendance->check_in_at || $first->format('H:i:s') < $attendance->check_in_at) {
+                        $updates['check_in_at'] = $first->format('H:i:s');
+                        $updates['check_in_type'] = 'fingerprint';
+                    }
+                    $newCheckOut = $last->format('H:i:s');
+                    if ((!$attendance->check_out_at || $newCheckOut > $attendance->check_out_at)
+                        && $newCheckOut > ($updates['check_in_at'] ?? $attendance->check_in_at)) {
+                        $updates['check_out_at'] = $newCheckOut;
+                        $updates['check_out_type'] = 'fingerprint';
+                    }
+                    if (!empty($updates)) {
+                        $attendance->update($updates);
+                    }
                 }
             }
-            Log::info("تم الانتهاء من سحب البصمات. نجح: $successCount, فشل: $failCount.");
-        } catch (Exception $e) {
-            Log::error('خطأ عام أثناء سحب البصمات في الخلفية: ' . $e->getMessage());
+        });
+
+        $this->persistUnmatched($device, $unmatched);
+        $this->markDeviceSuccess($device, $maxPunchAt);
+    }
+
+    private function connectWithRetry(ZktecoDevice $device): ZKTeco
+    {
+        $attempts = max(1, (int) config('attendance.zkteco.sync_retries', 3));
+        $lastError = null;
+
+        for ($i = 1; $i <= $attempts; $i++) {
+            try {
+                $zk = new ZKTeco($device->ip_address, $device->port ?? 4370);
+                if ($zk->connect()) {
+                    return $zk;
+                }
+                $lastError = 'connect() returned false';
+            } catch (Throwable $e) {
+                $lastError = $e->getMessage();
+            }
+            if ($i < $attempts) {
+                sleep(min(15, $i * 5));
+            }
         }
+
+        throw new \RuntimeException("Failed to connect to {$device->ip_address}:{$device->port}: {$lastError}");
+    }
+
+    /**
+     * @param  list<array{ts: Carbon, employee_code: string, raw: array}>  $unmatched
+     */
+    private function persistUnmatched(ZktecoDevice $device, array $unmatched): void
+    {
+        if (empty($unmatched)) return;
+
+        $rows = [];
+        foreach ($unmatched as $entry) {
+            $rows[] = [
+                'device_id' => $device->id,
+                'employee_code' => $entry['employee_code'] ?: 'unknown',
+                'punched_at' => $entry['ts']->toDateTimeString(),
+                'raw_payload' => json_encode($entry['raw'], JSON_UNESCAPED_UNICODE),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        // upsert على المفتاح الفريد (device_id, employee_code, punched_at) لتفادي التكرار
+        ZktecoUnmatchedRecord::query()->upsert(
+            $rows,
+            ['device_id', 'employee_code', 'punched_at'],
+            ['raw_payload', 'updated_at']
+        );
+    }
+
+    private function markDeviceSuccess(ZktecoDevice $device, ?Carbon $maxPunchAt): void
+    {
+        $device->forceFill([
+            'last_synced_at' => now(),
+            'last_run_status' => ZktecoDevice::STATUS_OK,
+            'last_error_message' => null,
+            'consecutive_failures' => 0,
+            'last_punch_at' => $maxPunchAt ?? $device->last_punch_at,
+        ])->save();
+    }
+
+    private function markDeviceFailure(ZktecoDevice $device, string $error): void
+    {
+        $device->forceFill([
+            'last_run_status' => ZktecoDevice::STATUS_FAILED,
+            'last_error_message' => mb_substr($error, 0, 1000),
+            'consecutive_failures' => (int) $device->consecutive_failures + 1,
+        ])->save();
     }
 }

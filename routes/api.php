@@ -69,6 +69,7 @@ Route::group([
     Route::post('employees/check-out', [AttendanceApiController::class, 'employeeCheckOut']);
     Route::get('employees/attendance-detail', [AttendanceApiController::class, 'getEmployeeAllAttendanceDetailOfTheMonth']);
     Route::post('employees/attendance',[AttendanceApiController::class, 'employeeAttendance']);
+    Route::post('employees/attendance/sync-offline',[AttendanceApiController::class, 'syncOfflinePunches']);
 
     /** Leave Request Routes **/
     Route::get('leave-types', [LeaveTypeApiController::class, 'getAllLeaveTypeWithEmployeeLeaveRecord']);

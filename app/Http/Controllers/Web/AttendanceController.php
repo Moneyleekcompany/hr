@@ -364,8 +364,13 @@ class AttendanceController extends Controller
                 $validatedData['check_in_longitude'] = $locationData['long'] ?? $validatedData['check_in_longitude'];
 
                 if (!empty($locationData['image'])) {
-                    // معالجة الصورة باستخدام MediaService
-                    $validatedData['check_in_image'] = $this->mediaService->processAndVerifyImage($locationData['image'], $userDetail, 'checkin');
+                    // معالجة الصورة باستخدام MediaService مع تحقق EXIF GPS
+                    $validatedData['check_in_image'] = $this->mediaService->processAndVerifyImage(
+                        $locationData['image'],
+                        $userDetail,
+                        'checkin',
+                        ['lat' => $validatedData['check_in_latitude'] ?? null, 'lng' => $validatedData['check_in_longitude'] ?? null]
+                    );
                 }
             }
 
@@ -409,8 +414,13 @@ class AttendanceController extends Controller
                 $validatedData['check_out_longitude'] = $locationData['long'] ?? $validatedData['check_out_longitude'];
 
                 if (!empty($locationData['image'])) {
-                    // معالجة الصورة باستخدام MediaService
-                    $validatedData['check_out_image'] = $this->mediaService->processAndVerifyImage($locationData['image'], $userDetail, 'checkout');
+                    // معالجة الصورة باستخدام MediaService مع تحقق EXIF GPS
+                    $validatedData['check_out_image'] = $this->mediaService->processAndVerifyImage(
+                        $locationData['image'],
+                        $userDetail,
+                        'checkout',
+                        ['lat' => $validatedData['check_out_latitude'] ?? null, 'lng' => $validatedData['check_out_longitude'] ?? null]
+                    );
                 }
             }
 

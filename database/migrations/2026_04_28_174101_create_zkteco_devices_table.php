@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // تم نقل الحقول إلى الملف القديم لتجنب تعارض تكرار إنشاء الجدول
+        // No-op: تكرار من 2026_04_28_164600_create_zkteco_devices_table.
+        // تُرك للحفاظ على سجل migrations في البيئات التي شغّلته.
+        // لا تحذف الملف لأن حذفه يكسر `php artisan migrate:status` على
+        // قواعد البيانات التي سبق وسجّلت هذا الميجريشن.
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        //
+        // intentionally empty
     }
 };

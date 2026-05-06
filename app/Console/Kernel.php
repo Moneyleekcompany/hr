@@ -35,6 +35,15 @@ class Kernel extends ConsoleKernel
         // جدولة سحب البصمات من الأجهزة مرتين يومياً (12:00 ظهراً و 12:00 منتصف الليل)
         $schedule->command('zkteco:sync')->twiceDaily(0, 12);
 
+        // فحص دوري لصحة أجهزة ZKTeco والبصمات غير المطابقة (كل ساعتين)
+        $schedule->command('zkteco:health-check --silent')->everyTwoHours();
+
+        // تذكير الموظفين الذين نسوا تسجيل الانصراف بعد ٨ ساعات من الـ check-in
+        $schedule->command('attendance:remind-checkout')->hourly();
+
+        // تنظيف أسبوعي لسجلات تدقيق الحضور القديمة
+        $schedule->command('attendance:prune-audit --silent')->weeklyOn(0, '03:30');
+
         // أتمتة الرواتب: إنشاء مسودة الرواتب شهرياً يوم 25 الساعة 8 صباحاً
         $schedule->command('payroll:generate-monthly')->monthlyOn(25, '08:00');
 

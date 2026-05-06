@@ -221,6 +221,9 @@ Route::group([
         
         /** Selfie Review Gallery */
         Route::get('attendance/selfies', [AttendanceController::class, 'selfieGallery'])->name('attendance.selfies');
+
+        /** Monthly Attendance Compliance Dashboard */
+        Route::get('attendance/compliance', [\App\Http\Controllers\Web\AttendanceComplianceController::class, 'index'])->name('attendance.compliance');
         
         Route::post('employees/attendance/{type}', [AttendanceController::class, 'dashboardAttendance'])->name('dashboard.takeAttendance');
 

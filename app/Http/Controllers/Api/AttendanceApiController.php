@@ -13,8 +13,11 @@ use App\Resources\Attendance\EmployeeAttendanceDetailCollection;
 use App\Resources\Attendance\NightAttendanceResource;
 use App\Resources\Attendance\TodayAttendanceResource;
 use App\Resources\Dashboard\EmployeeTodayAttendance;
+use App\Services\Attendance\AttendanceIntegrityGuard;
 use App\Services\Attendance\AttendanceService;
 use App\Services\Attendance\AttendanceLogService;
+use App\Services\Attendance\LocationService;
+use App\Services\Attendance\OfflinePunchSyncService;
 use App\Services\Nfc\NfcService;
 use App\Services\Qr\QrCodeService;
 use Exception;
@@ -34,8 +37,45 @@ class AttendanceApiController extends Controller
     public function __construct(protected AttendanceService $attendanceService,
     protected QrCodeService $qrCodeService,
     protected NfcService $nfcService,
-    protected AttendanceLogService $attendanceLogService)
+    protected AttendanceLogService $attendanceLogService,
+    protected AttendanceIntegrityGuard $integrityGuard,
+    protected LocationService $locationService,
+    protected OfflinePunchSyncService $offlinePunchSyncService)
     {}
+
+    public function syncOfflinePunches(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'punches' => ['required', 'array', 'min:1', 'max:200'],
+                'punches.*.client_uuid' => ['required', 'string', 'uuid'],
+                'punches.*.punched_at' => ['required', 'date'],
+                'punches.*.type' => ['required', 'in:checkIn,checkOut'],
+                'punches.*.latitude' => ['nullable', 'numeric'],
+                'punches.*.longitude' => ['nullable', 'numeric'],
+                'punches.*.accuracy_meters' => ['nullable', 'integer', 'min:0', 'max:5000'],
+                'punches.*.device_id' => ['nullable', 'string', 'max:128'],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('index.validation_failed'),
+                    'errors' => $validator->errors()->toArray(),
+                ], 422);
+            }
+
+            $user = auth()->user();
+            $results = $this->offlinePunchSyncService->ingestBatch($user, $validator->validated()['punches']);
+
+            return AppHelper::sendSuccessResponse(
+                __('index.data_found'),
+                ['results' => $results]
+            );
+        } catch (Exception $exception) {
+            return AppHelper::sendErrorResponse($exception->getMessage(), $exception->getCode());
+        }
+    }
 
     public function getEmployeeAllAttendanceDetailOfTheMonth(Request $request): JsonResponse
     {
@@ -115,11 +155,18 @@ class AttendanceApiController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'attendance_type' => [new Enum(EmployeeAttendanceTypeEnum::class)],
-                'latitude' => ['nullable'],
-                'longitude' => ['nullable'],
+                'latitude' => ['nullable', 'numeric'],
+                'longitude' => ['nullable', 'numeric'],
+                'accuracy_meters' => ['nullable', 'integer', 'min:0', 'max:5000'],
+                'is_mock_location' => ['nullable', 'boolean'],
+                'device_id' => ['nullable', 'string', 'max:128'],
                 'router_bssid' => ['nullable'],
                 'identifier' => ['nullable', 'required_if:attendance_type,' . EmployeeAttendanceTypeEnum::qr->value, 'required_if:attendance_type,' . EmployeeAttendanceTypeEnum::nfc->value,],
-                'attendance_status_type' => ['nullable', 'required_if:attendance_type,' . EmployeeAttendanceTypeEnum::wifi->value],
+                'attendance_status_type' => [
+                    'nullable',
+                    'required_if:attendance_type,' . EmployeeAttendanceTypeEnum::wifi->value,
+                    'required_if:attendance_type,' . EmployeeAttendanceTypeEnum::gps->value,
+                ],
                 'note'=>['nullable'],
             ]);
 
@@ -140,6 +187,9 @@ class AttendanceApiController extends Controller
             $validatedData['user_id'] = $userDetail['id'];
             $validatedData['company_id'] = $userDetail['company_id'];
             $validatedData['office_time_id'] = $userDetail['office_time_id'];
+
+            // فحوص أمنية موحدة (double-tap, mock-GPS, accuracy)
+            $this->integrityGuard->guard($userDetail, $validatedData);
 
             $this->storeAttendanceLog($validatedData, $userDetail);
 
@@ -172,6 +222,39 @@ class AttendanceApiController extends Controller
 
                 $validatedData[$latitudeKey] = ($userDetail['workspace_type'] == User::OFFICE) ? ($coordinate['latitude'] ?? $validatedData['latitude']): $validatedData['latitude'];
                 $validatedData[$longitudeKey] = ($userDetail['workspace_type'] == User::OFFICE)? ($coordinate['longitude'] ?? $validatedData['longitude']): $validatedData['longitude'];
+
+            } elseif ($validatedData['attendance_type'] == EmployeeAttendanceTypeEnum::gps->value)
+            {
+                if (!isset($validatedData['latitude'], $validatedData['longitude'])) {
+                    throw new Exception(__('index.gps_required'), 422);
+                }
+
+                $branch = $userDetail->branch ?? null;
+                $branchLat = $branch->branch_location_latitude ?? null;
+                $branchLng = $branch->branch_location_longitude ?? null;
+
+                $this->locationService->verifyGeofence(
+                    $userDetail,
+                    (float) $validatedData['latitude'],
+                    (float) $validatedData['longitude'],
+                    $branchLat,
+                    $branchLng
+                );
+
+                $isCheckIn = $validatedData['attendance_status_type'] === 'checkIn';
+                $latitudeKey = $isCheckIn ? 'check_in_latitude' : 'check_out_latitude';
+                $longitudeKey = $isCheckIn ? 'check_in_longitude' : 'check_out_longitude';
+                $deviceKey = $isCheckIn ? 'check_in_device_id' : 'check_out_device_id';
+                $accuracyKey = $isCheckIn ? 'check_in_accuracy_m' : 'check_out_accuracy_m';
+
+                $validatedData[$latitudeKey] = (float) $validatedData['latitude'];
+                $validatedData[$longitudeKey] = (float) $validatedData['longitude'];
+                if (!empty($validatedData['device_id'])) {
+                    $validatedData[$deviceKey] = $validatedData['device_id'];
+                }
+                if (isset($validatedData['accuracy_meters'])) {
+                    $validatedData[$accuracyKey] = (int) $validatedData['accuracy_meters'];
+                }
 
             } else {
                 return response()->json(['success' => false, 'message' => __('index.invalid_attendance_type')]);
@@ -337,7 +420,12 @@ class AttendanceApiController extends Controller
      */
     private function processNewAttendance($validatedData)
     {
-        if ($validatedData['attendance_type'] == EmployeeAttendanceTypeEnum::wifi->value && $validatedData['attendance_status_type'] == 'checkOut') {
+        $needsStatus = in_array($validatedData['attendance_type'], [
+            EmployeeAttendanceTypeEnum::wifi->value,
+            EmployeeAttendanceTypeEnum::gps->value,
+        ], true);
+
+        if ($needsStatus && $validatedData['attendance_status_type'] == 'checkOut') {
             throw new Exception(__('index.not_checked_in_yet'), 400);
         }
 

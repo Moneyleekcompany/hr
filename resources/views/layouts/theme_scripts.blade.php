@@ -1,79 +1,39 @@
 <script>
-    {{--$(document).ready(function () {--}}
+$(document).ready(function () {
+    const initial = document.documentElement.getAttribute('data-theme') || '{{ \App\Helpers\AppHelper::getTheme() }}';
+    syncToggleIcons(initial);
 
-    {{--    let theme = '{{\App\Helpers\AppHelper::getTheme()}}'--}}
-    {{--    if(theme === 'dark'){--}}
-    {{--       $('#sun').show();--}}
-    {{--       $('#moon').hide();--}}
-    {{--    }else{--}}
-    {{--       $('#moon').show();--}}
-    {{--       $('#sun').hide();--}}
-    {{--    }--}}
+    $('#moon').on('click', () => requestThemeSwitch('dark'));
+    $('#sun').on('click', () => requestThemeSwitch('light'));
 
-    {{--    $('#moon').click(function(){--}}
-    {{--        changeTheme();--}}
-    {{--        $('head').append(--}}
-    {{--            '<link rel="stylesheet"  \--}}
-    {{--             href="{{asset('assets/css/style_dark.css')}}" id="themeColor" />');--}}
-    {{--        $('#sun').show();--}}
-    {{--        $('#moon').hide();--}}
-    {{--    })--}}
+    function requestThemeSwitch(intended) {
+        // طبّق الثيم محليًا فورًا (smooth، بدون انتظار السيرفر)
+        document.documentElement.setAttribute('data-theme', intended);
+        try { localStorage.setItem('hr-theme', intended); } catch (e) {}
+        syncToggleIcons(intended);
 
-    {{--    $('#sun').click(function(){--}}
-    {{--        changeTheme()--}}
-    {{--        $('head').append(--}}
-    {{--            '<link rel="stylesheet"  \ ' +--}}
-    {{--            'href="{{asset('assets/css/style.css')}}" id="themeColor" />');--}}
-    {{--        $('#moon').show();--}}
-    {{--        $('#sun').hide();--}}
-    {{--    })--}}
-
-    {{--    function changeTheme(){--}}
-    {{--        $.ajax({--}}
-    {{--            type: "GET",--}}
-    {{--            url: "{{route('admin.app-settings.change-theme')}}",--}}
-    {{--            success: function(data){--}}
-    {{--                $("#themeColor").remove();--}}
-    {{--            }--}}
-    {{--        });--}}
-    {{--    }--}}
-    {{--});--}}
-
-    $(document).ready(function () {
-        let theme = '{{ \App\Helpers\AppHelper::getTheme() }}';
-        loadTheme(theme);
-
-        $('#moon').click(function() {
-            changeTheme();
-        });
-
-        $('#sun').click(function() {
-            changeTheme();
-        });
-
-        function changeTheme() {
-            $.ajax({
-                type: "GET",
-                url: "{{ route('admin.change-theme') }}",
-                success: function(data) {
-                    $("#themeColor").remove();
-                    loadTheme(data.theme);
-                    location.reload();
-                }
-            });
-        }
-
-        function loadTheme(theme) {
-            if (theme === 'light') {
-                $('head').append('<link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" id="themeColor" />');
-                $('#moon').show();
-                $('#sun').hide();
-            } else {
-                $('head').append('<link rel="stylesheet" href="{{ asset('assets/css/style_dark.css') }}" id="themeColor" />');
-                $('#sun').show();
-                $('#moon').hide();
+        // مزامنة مع السيرفر — بدون reload عشان مفيش flash
+        $.ajax({
+            type: 'GET',
+            url: "{{ route('admin.change-theme') }}",
+            error: function () {
+                // لو فشل، رجّع للثيم القديم
+                const fallback = intended === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', fallback);
+                try { localStorage.setItem('hr-theme', fallback); } catch (e) {}
+                syncToggleIcons(fallback);
             }
-        }
-    });
+        });
+    }
 
+    function syncToggleIcons(theme) {
+        if (theme === 'dark') {
+            $('#sun').show();
+            $('#moon').hide();
+        } else {
+            $('#moon').show();
+            $('#sun').hide();
+        }
+    }
+});
 </script>
