@@ -13,13 +13,18 @@
 # مهم: الاستضافة دي مشتركة — مفيش root ولا sudo ولا systemctl.
 # عشان كده مفيش هنا `sudo -u` ولا `apache2ctl graceful` زي سكريبت castle-ops.
 
+# ⚠️  ممنوع استخدام ده على castle (نظام HARM).
+#     castle بينشر جراحيًا ملف ملف حسب HARM_CASTLE_HANDOFF.md §3، لأن الإنتاج
+#     بيتعدّل من مطوّر تاني وفيه دايمًا تعديلات غير مرفوعة على GitHub.
+#     ده لمشروع متظبط عليه git-based deploy من الأول — زي hr.
+
 set -euo pipefail
 
 SSH_HOST="${DEPLOY_HOST:-46.202.192.55}"
 SSH_PORT="${DEPLOY_PORT:-65002}"
 SSH_USER="${DEPLOY_USER:-u336950052}"
-DOMAIN="${DEPLOY_DOMAIN:-castle.moneyleek.online}"
-APP_PATH="${DEPLOY_PATH:-/home/${SSH_USER}/domains/${DOMAIN}/public_html}"
+DOMAIN="${DEPLOY_DOMAIN:?لازم تحدد DEPLOY_DOMAIN صراحةً — مفيش default}"
+APP_PATH="${DEPLOY_PATH:?لازم تحدد DEPLOY_PATH صراحةً — المسار مش قياسي على السيرفر ده}"
 BRANCH="${DEPLOY_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
 PHP="${DEPLOY_PHP:-php}"
 
@@ -88,8 +93,12 @@ git push origin "$BRANCH"
 # الخطوات بين down و up بـ';' مش '&&' عشان الموقع يرجع يشتغل حتى لو خطوة فشلت.
 echo "🚀 deploying..."
 $SSH "cd '$APP_PATH' && \
+    if [ -n \"\$(git status --porcelain)\" ]; then \
+        echo '🛑 فيه تعديلات على السيرفر مش مرفوعة — النشر اتوقف.' ; \
+        git status -s ; exit 1 ; \
+    fi && \
     git fetch origin '$BRANCH' && \
-    git reset --hard 'origin/$BRANCH' && \
+    git merge --ff-only 'origin/$BRANCH' && \
     ($PHP composer.phar install --no-dev --optimize-autoloader 2>/dev/null \
         || composer install --no-dev --optimize-autoloader) ; \
     $PHP artisan down --retry=15 || true ; \
